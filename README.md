@@ -1,7 +1,5 @@
 # CareCompass
 
-Backend onboarding notes for teammates working in `backend/`.
-
 ## Quick Start
 
 Prereqs:
