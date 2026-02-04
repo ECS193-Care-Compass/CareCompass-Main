@@ -2,6 +2,7 @@
 
 ## Architecture
 
+![alt text](image.png)
 ```
 User Query
     ↓
