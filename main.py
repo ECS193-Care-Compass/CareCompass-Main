@@ -66,6 +66,7 @@ class CAREBot:
                 
                 return {
                     "response": crisis_response,
+                    "num_docs_retrieved": 0,
                     "is_crisis": True,
                     "retrieved_docs": [],
                     "source": "crisis_protocol"
