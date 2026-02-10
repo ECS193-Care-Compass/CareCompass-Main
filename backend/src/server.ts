@@ -21,13 +21,14 @@ export function createServer() {
   const config = loadConfig();
   const sessionRepo = createSessionRepo();
   const resourcesRepo = createResourcesRepo();
+  const resourcesService = createResourcesService(resourcesRepo);
 
   const chatService = createChatService({
     sessionRepo,
     modelClient: createGeminiClient(),
+    resourcesService,
   });
   const consentService = createConsentService(sessionRepo);
-  const resourcesService = createResourcesService(resourcesRepo);
 
   app.use(helmet());
   app.use(cors({ origin: config.corsOrigin }));
