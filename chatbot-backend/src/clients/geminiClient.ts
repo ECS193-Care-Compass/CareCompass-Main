@@ -15,15 +15,27 @@ export class GeminiClient implements ChatModelClient {
       ? `Context: ${contextSummary}\n\nUser: ${message}`
       : `User: ${message}`;
 
-    const response = await fetch(`${GEMINI_API_URL}/${geminiModel}:generateContent?key=${geminiApiKey}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-      }),
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${GEMINI_API_URL}/${geminiModel}:generateContent?key=${geminiApiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+        }),
+      });
+    } catch (error) {
+      console.error("Gemini API request failed:", error);
+      return "I am here with you. I can still share local resources while we retry chat generation.";
+    }
 
     if (!response.ok) {
+      const errorBody = await response.text().catch(() => "");
+      console.error("Gemini API error:", {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorBody,
+      });
       return "I am here with you. I can still share local resources while we retry chat generation.";
     }
 

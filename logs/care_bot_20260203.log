@@ -1,0 +1,4 @@
+2026-02-03 12:19:55 - __main__ - INFO - __init__:28 - Initializing CARE Bot...
+2026-02-03 12:20:13 - src.embeddings.vector_store - INFO - _get_or_create_collection:46 - Loaded existing collection: care_bot_documents
+2026-02-03 12:20:13 - src.embeddings.vector_store - INFO - __init__:37 - Initialized VectorStore with collection: care_bot_documents
+2026-02-03 12:20:13 - src.retrieval.retriever - INFO - __init__:25 - Initialized Retriever with top_k=3
