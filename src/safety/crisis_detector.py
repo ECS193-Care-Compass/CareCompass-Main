@@ -51,23 +51,13 @@ class CrisisDetector:
         }
     
     def get_crisis_response(self, severity: str = None) -> str:
-        """
-        Get crisis response message (single message for any severity)
-        
-        Args:
-            severity: Crisis severity level (ignored - same message for all)
-        
-        Returns:
-            Crisis response message
-        """
         return """I'm concerned about what you've shared with me. Your safety is the most important thing right now.
 
-        IMMEDIATE HELP AVAILABLE 24/7:
+**IMMEDIATE HELP AVAILABLE 24/7:**
 
-        • **Emergency Services**
-        If you're in immediate danger: Call 911
+- **Emergency Services**
+If you're in immediate danger: Call 911"""
 
-        """
     
     def log_crisis_detection(self, 
                            user_input: str, 

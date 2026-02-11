@@ -88,6 +88,7 @@ class Retriever:
                             k: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         Retrieve documents for a specific scenario category
+        Falls back to regular retrieval if no scenario-tagged documents found
         
         Args:
             query: User query
@@ -95,11 +96,18 @@ class Retriever:
             k: Number of results
         
         Returns:
-            Scenario-filtered documents
+            Scenario-filtered documents, or general results as fallback
         """
         filter_dict = {"scenario_category": scenario_category}
         
-        return self.retrieve(query, k, filter_metadata=filter_dict)
+        results = self.retrieve(query, k, filter_metadata=filter_dict)
+        
+        # Fallback: if no scenario-tagged docs found, use regular retrieval
+        if not results:
+            logger.info(f"No documents with scenario '{scenario_category}', falling back to general retrieval")
+            results = self.retrieve(query, k)
+        
+        return results
     
     def retrieve_foundational_content(self,
                                      query: str,

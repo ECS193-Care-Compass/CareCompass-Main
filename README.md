@@ -62,8 +62,14 @@ Place your PDF documents in `data/raw/`:
 
 ### Quick Start
 
+
+Backend:
 ```bash
-python main.py
+uvicorn api:app --reload --host 0.0.0.0 --port 8000
+```
+Frontend:
+```bash
+npm run dev
 ```
 
 This will:
