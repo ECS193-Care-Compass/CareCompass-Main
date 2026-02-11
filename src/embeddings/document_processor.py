@@ -5,8 +5,7 @@ import os
 from typing import List, Dict, Any
 from pathlib import Path
 import pypdf
-from sentence_transformers import SentenceTransformer
-from config.settings import CHUNK_SIZE, CHUNK_OVERLAP, EMBEDDING_MODEL, RAW_DATA_DIR
+from config.settings import CHUNK_SIZE, CHUNK_OVERLAP, RAW_DATA_DIR
 from src.utils.logger import get_logger
 from src.utils.text_splitter import SimpleTextSplitter
 
@@ -23,7 +22,8 @@ class DocumentProcessor:
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap
         )
-        self.embedding_model = SentenceTransformer(EMBEDDING_MODEL)
+        # Removed: SentenceTransformer model load
+        # ChromaDB's embedding function in VectorStore handles embeddings automatically
         logger.info(f"Initialized DocumentProcessor with chunk_size={chunk_size}, overlap={chunk_overlap}")
     
     def extract_text_from_pdf(self, pdf_path: Path) -> List[Dict[str, Any]]:
@@ -89,24 +89,6 @@ class DocumentProcessor:
                 doc["metadata"]["scenario_category"] = scenario_category
         
         return documents
-    
-    def generate_embeddings(self, texts: List[str]) -> List[List[float]]:
-        """Generate embeddings for texts"""
-        logger.info(f"Generating embeddings for {len(texts)} texts")
-        
-        try:
-            embeddings = self.embedding_model.encode(
-                texts, 
-                show_progress_bar=True,
-                convert_to_numpy=True
-            )
-            
-            logger.info(f"Generated embeddings with shape: {embeddings.shape}")
-            return embeddings.tolist()
-            
-        except Exception as e:
-            logger.error(f"Error generating embeddings: {str(e)}")
-            raise
     
     def process_samhsa_document(self) -> List[Dict[str, Any]]:
         """Process the SAMHSA trauma-informed care document"""

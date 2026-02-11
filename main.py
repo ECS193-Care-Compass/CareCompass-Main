@@ -106,9 +106,12 @@ class CAREBot:
             crisis_addendum = f"\n\nIMPORTANT: The user may be in distress. Include crisis resources in your response:\n{self.crisis_detector.get_crisis_response()}"
             prompt += crisis_addendum
         
-        # Step 4: Generate Response
+        # Step 4: Generate Response (now with user_query for conversation memory)
         try:
-            llm_response = self.llm_handler.generate_response(prompt)
+            llm_response = self.llm_handler.generate_response(
+                prompt, 
+                user_query=user_query  # Pass original query for clean history
+            )
             response_text = llm_response["text"]
             
             logger.info(f"Generated response of length: {len(response_text)}")
@@ -147,6 +150,11 @@ class CAREBot:
         )
         
         return result
+    
+    def clear_conversation(self) -> None:
+        """Clear conversation history for a fresh start"""
+        self.llm_handler.clear_history()
+        logger.info("Conversation history cleared")
     
     def _get_fallback_response(self) -> str:
         """Get fallback response for errors"""
@@ -191,12 +199,14 @@ Your forensic nurse or advocate can also help connect you with local resources a
     def get_stats(self) -> Dict[str, Any]:
         """Get statistics about the bot"""
         vector_stats = self.vector_store.get_collection_stats()
+        history_stats = self.llm_handler.get_history_summary()
         
         return {
             "vector_store": vector_stats,
             "retriever_top_k": self.retriever.top_k,
             "llm_model": self.llm_handler.model_name,
-            "crisis_keywords": len(self.crisis_detector.crisis_keywords)
+            "crisis_keywords": len(self.crisis_detector.crisis_keywords),
+            "conversation_history": history_stats
         }
 
 
@@ -228,10 +238,15 @@ def main():
     print("  'quit' - Exit")
     print("  'stats' - Show bot statistics")
     print("  'menu' - Show help categories again")
+    print("  'clear' - Clear conversation history")
+    print("  'history' - Show conversation history info")
     print("="*80 + "\n")
     
     # Show initial menu
     show_menu()
+    
+    # Track selected category across inputs
+    pending_scenario = None
     
     while True:
         try:
@@ -250,18 +265,36 @@ def main():
                 continue
             
             if user_input.lower() == 'menu':
+                pending_scenario = None  # Reset category on menu
                 show_menu()
+                continue
+            
+            if user_input.lower() == 'clear':
+                bot.clear_conversation()
+                pending_scenario = None
+                print("\nConversation history cleared. Starting fresh.")
+                continue
+            
+            if user_input.lower() == 'history':
+                history = bot.llm_handler.get_history_summary()
+                print(f"\nConversation History:")
+                print(f"  Turns: {history['total_turns']}/{history['max_turns']}")
+                print(f"  Messages: {history['messages']}")
                 continue
             
             # Check if user selected a category number
             scenario = parse_category_choice(user_input)
             
             if scenario == "show_menu":
-                # User entered just a number, show what they selected
+                # User entered just a number — store the category and wait for question
+                pending_scenario = parse_category_from_number(user_input.strip())
                 continue
             
-            # Process query with detected scenario (or None for generic)
-            result = bot.process_query(user_input, scenario_category=scenario)
+            # Use inline scenario if detected, otherwise use pending one
+            active_scenario = scenario if scenario else pending_scenario
+            
+            # Process query with the active scenario
+            result = bot.process_query(user_input, scenario_category=active_scenario)
             
             # Display response
             print(f"\nCARE Bot: {result['response']}")
@@ -270,8 +303,8 @@ def main():
             if result.get("is_crisis"):
                 print(f"\n[Crisis Detected]")
             
-            if scenario:
-                print(f"\n[Category: {get_category_name(scenario)}]")
+            if active_scenario:
+                print(f"\n[Category: {get_category_name(active_scenario)}]")
             
             print(f"[Retrieved {result['num_docs_retrieved']} relevant documents]")
             
@@ -305,6 +338,19 @@ def show_menu():
     print("  • Type a number (1-6) to select a category")
     print("  • Or just type your question directly (uses general help)")
     print("="*80)
+
+
+def parse_category_from_number(number: str) -> Optional[str]:
+    """Convert a number selection to a scenario category"""
+    category_map = {
+        "1": "immediate_followup",
+        "2": "mental_health",
+        "3": "practical_social",
+        "4": "legal_advocacy",
+        "5": "delayed_ambivalent",
+        "6": None
+    }
+    return category_map.get(number)
 
 
 def parse_category_choice(user_input: str) -> Optional[str]:

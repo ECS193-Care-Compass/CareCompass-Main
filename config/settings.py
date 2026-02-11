@@ -34,7 +34,7 @@ SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.7"))
 # LLM Configuration
 MODEL_NAME = os.getenv("MODEL_NAME", "gemini-2.5-flash")
 TEMPERATURE = float(os.getenv("TEMPERATURE", "0.7"))
-MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "1024"))
+MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "4096"))
 
 # Safety Configuration
 ENABLE_CRISIS_DETECTION = os.getenv("ENABLE_CRISIS_DETECTION", "true").lower() == "true"
