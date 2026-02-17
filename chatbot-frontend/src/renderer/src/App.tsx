@@ -96,7 +96,7 @@ function App(): React.JSX.Element {
         height: '100vh', 
         padding: '20px',
         position: 'relative',
-        background: '#005f63'
+        background: '#66c2c2'  
       }}
     >
 
