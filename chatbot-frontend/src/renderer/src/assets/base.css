@@ -1,4 +1,10 @@
 :root {
+
+  --brand-primary: #6D28D9; /* From Figma */
+  --bg-electron: #121212;
+  --sidebar-width: 260px;
+  --font-main: 'Inter', sans-serif;
+
   --ev-c-white: #ffffff;
   --ev-c-white-soft: #f8f8f8;
   --ev-c-white-mute: #f2f2f2;
