@@ -36,7 +36,8 @@ async def startup():
     """Initialize CARE Bot on server startup"""
     global bot
     logger.info("Starting CARE Bot API...")
-    bot = CAREBot()
+    bot = CAREBot(warmup_crisis_detector=True)
+
     
     # Initialize vector store if empty
     stats = bot.get_stats()

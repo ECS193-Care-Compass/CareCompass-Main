@@ -65,7 +65,7 @@ Place your PDF documents in `data/raw/`:
 
 Backend:
 ```bash
-uvicorn api:app --reload --host 0.0.0.0 --port 8000
+
 ```
 Frontend:
 ```bash
