@@ -1,3 +1,5 @@
+// Test code for combined figma and react to put in App.tsx
+
 import { QuickExitBar } from './components/QuickExitBar';
 import { ChatbotWithLanguageButton } from './components/ChatbotWithLanguageButton';
 import { ResourcesSection } from './components/ResourcesSection';

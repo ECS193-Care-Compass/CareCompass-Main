@@ -23,7 +23,7 @@ export default function ChatUI({
   setScenario,
   handleSend,
   handleClearChat,
-}: ChatUIProps) { // <--- This curly brace starts the implementation
+}: ChatUIProps) { 
   
   return (
     <div className="flex flex-col h-[600px] bg-white/20 backdrop-blur-md rounded-3xl border border-white/30 shadow-xl overflow-hidden">

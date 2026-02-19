@@ -3,34 +3,30 @@ import ReactMarkdown from 'react-markdown';
 import { ArrowUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+// Importing atoms
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { ScrollArea } from '../components/ui/scroll-area';
+import { Badge } from '../components/ui/badge';
+import { cn } from '../components/ui/utils'; 
+
 interface Message {
   role: 'user' | 'ai' | 'error';
   text: string;
 }
 
 export function ChatbotWithLanguageButton() {
-  // --- LOGIC STATE ---
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'ai', text: "Hello! I am CareCompass. I'm here to listen and provide support. How can I help you today?" }
+    { role: 'ai', text: "Hello! I am CareCompass. How can I help you today?" }
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [scenario, setScenario] = useState<string | null>(null);
   const [language, setLanguage] = useState<'en' | 'es'>('en');
-  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // --- AUTO-SCROLL ---
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages, isLoading]);
-
-  // --- API HANDLER ---
   const handleSend = async (overrideMessage?: string) => {
     const userMessage = (overrideMessage || input).trim();
     if (!userMessage || isLoading) return;
-
     setInput('');
     setMessages((prev) => [...prev, { role: 'user', text: userMessage }]);
     setIsLoading(true);
@@ -44,7 +40,7 @@ export function ChatbotWithLanguageButton() {
       const data = await response.json();
       setMessages((prev) => [...prev, { role: 'ai', text: data.response }]);
     } catch (error) {
-      setMessages((prev) => [...prev, { role: 'error', text: 'Connection error. Please try again.' }]);
+      setMessages((prev) => [...prev, { role: 'error', text: 'Connection error.' }]);
     } finally {
       setIsLoading(false);
     }
@@ -59,70 +55,88 @@ export function ChatbotWithLanguageButton() {
   return (
     <div className="flex flex-col h-[650px] bg-white/20 backdrop-blur-md rounded-3xl border border-white/30 shadow-2xl overflow-hidden">
       
-      {/* HEADER & LANGUAGE TOGGLE */}
+      {/* HEADER */}
       <div className="p-6 flex justify-between items-center bg-white/10 border-b border-white/20">
-        <h2 className="text-xl font-bold text-cyan-900">CareCompass AI</h2>
-        <button 
+        <h2 className="text-xl font-bold text-cyan-900 font-sans">CareCompass AI</h2>
+        <Button 
+          variant="outline" 
+          size="sm"
           onClick={() => setLanguage(language === 'en' ? 'es' : 'en')}
-          className="px-3 py-1 text-xs rounded-full border border-cyan-800 text-cyan-900 hover:bg-cyan-800 hover:text-white transition-all"
+          className="rounded-full border-cyan-800 text-cyan-900 hover:bg-cyan-800 hover:text-white"
         >
           {language === 'en' ? 'ESPAÑOL' : 'ENGLISH'}
-        </button>
+        </Button>
       </div>
 
       {/* CATEGORY CHIPS */}
       <div className="px-6 py-3 flex gap-2 flex-wrap bg-white/5">
         {categories.map((cat) => (
-          <button
+          <Badge
             key={cat.id}
+            variant={scenario === cat.id ? "default" : "secondary"}
+            className="cursor-pointer transition-all"
             onClick={() => setScenario(scenario === cat.id ? null : cat.id)}
-            className={`px-3 py-1.5 rounded-full text-xs transition-all ${
-              scenario === cat.id ? 'bg-cyan-800 text-white' : 'bg-white/40 text-cyan-900 hover:bg-white/60'
-            }`}
           >
             {cat.label}
-          </button>
+          </Badge>
         ))}
       </div>
 
-      {/* MESSAGES AREA */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4">
-        {messages.map((msg, idx) => (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            key={idx} 
-            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div className={`max-w-[80%] p-4 rounded-2xl text-sm shadow-sm ${
-              msg.role === 'user' ? 'bg-teal-700 text-white rounded-tr-none' : 'bg-white text-cyan-950 rounded-tl-none'
-            }`}>
-              <ReactMarkdown>{msg.text}</ReactMarkdown>
-            </div>
-          </motion.div>
-        ))}
-        {isLoading && <div className="text-xs text-cyan-900/50 animate-pulse">CareCompass is typing...</div>}
-      </div>
+      {/* MESSAGES AREA - Cleaned up nesting */}
+      <ScrollArea className="flex-1 px-6">
+        <div className="py-6 space-y-6">
+          {messages.map((msg, idx) => (
+            <motion.div 
+              key={idx} 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={cn(
+                "flex w-full",
+                msg.role === 'user' ? "justify-end" : "justify-start"
+              )}
+            >
+              <div className={cn(
+                "max-w-[80%] p-4 rounded-2xl text-sm shadow-sm",
+                msg.role === 'user' 
+                  ? "bg-teal-700 text-white rounded-tr-none" 
+                  : "bg-white text-cyan-950 rounded-tl-none border border-white/40"
+              )}>{}
+                <div className="prose prose-sm prose-slate max-w-none dark:prose-invert">
+                  <ReactMarkdown>{msg.text}</ReactMarkdown>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+          {isLoading && <div className="text-xs text-cyan-900/50 animate-pulse">Thinking...</div>}
+        </div>
+      </ScrollArea>
 
       {/* INPUT AREA */}
-      <div className="p-6 bg-white/10 border-t border-white/20">
-        <div className="relative flex items-center">
-          <input
-            type="text"
+      <div className="p-6 bg-white/10 backdrop-blur-sm border-t border-white/20">
+        <div className="relative flex items-center gap-3">
+          <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Type your message..."
-            className="w-full bg-white/80 border-none rounded-2xl py-4 pl-5 pr-14 text-sm focus:ring-2 focus:ring-teal-600 outline-none"
+            className={cn(
+              "h-14 rounded-2xl bg-white/90 border-0 px-5 shadow-inner transition-all",
+              "focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-0",
+              "placeholder:text-cyan-900/40"
+            )}
+            placeholder="Ask about resources or healthcare..."
           />
-          <button 
+          <Button 
             onClick={() => handleSend()}
-            className="absolute right-2 p-2 bg-teal-700 text-white rounded-xl hover:bg-teal-800 transition-colors"
+            size="icon"
+            className={cn(
+              "h-12 w-12 rounded-xl bg-teal-700 hover:bg-teal-800 shadow-lg",
+              "transition-transform active:scale-95 shrink-0"
+            )}
           >
-            <ArrowUp size={20} />
-          </button>
+            <ArrowUp className="h-5 w-5" />
+          </Button>
         </div>
       </div>
-    </div>
+    </div> // Added missing closing tag
   );
 }

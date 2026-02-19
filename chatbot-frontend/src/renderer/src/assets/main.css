@@ -1,13 +1,38 @@
 @import './base.css';
+@import './figma.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 1.5rem; 
+    
+    --primary: 181 100% 19%; 
+    --primary-foreground: 0 0% 100%;
+    
+    --background: 0 0% 100%;
+    --border: 214.3 31.8% 91.4%;
+  }
+}
 
 body {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
+  margin: 0;
+  display: block; 
+  overflow-y: auto; 
   background-image: url('./wavy-lines.svg');
   background-size: cover;
-  user-select: none;
+  background-attachment: fixed; 
+  min-height: 100vh;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  align-items: center; 
+  justify-content: flex-start; 
+  width: 100%;
 }
 
 code {
