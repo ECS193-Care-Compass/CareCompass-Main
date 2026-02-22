@@ -1,18 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
-import ReactMarkdown from 'react-markdown';
-import { ArrowUp } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react'
+import ReactMarkdown from 'react-markdown'
+import { ArrowUp } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 // Importing atoms
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { ScrollArea } from '../components/ui/scroll-area';
-import { Badge } from '../components/ui/badge';
-import { cn } from '../components/ui/utils'; 
+import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
+import { ScrollArea } from '../components/ui/scroll-area'
+import { Badge } from '../components/ui/badge'
+import { cn } from '../components/ui/utils'
 
 interface Message {
-  role: 'user' | 'ai' | 'error';
-  text: string;
+  role: 'user' | 'ai' | 'error'
+  text: string
 }
 
 export function ChatbotWithLanguageButton() {

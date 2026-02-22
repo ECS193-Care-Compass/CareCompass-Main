@@ -9,10 +9,10 @@ interface Message {
 }
 
 const GUIDED_PROMPTS = [
-  "Placeholder option 1",
-  "Placeholder option 2",
-  "Placeholder option 3"
-];
+  { label: "Mental Health Support", scenario: "mental_health" },
+  { label: "Practical Needs Help", scenario: "practical_social" },
+  { label: "Legal & Advocacy Help", scenario: "legal_advocacy" },
+]
 
 const INITIAL_GREETING = "Hello, you're safe here. I'm here to listen and provide support. How can I help you today?";
 
@@ -117,7 +117,7 @@ export function Chatbot() {
     >
       {/* Messages Container or Initial Greeting */}
       {!hasStarted ? (
-        <div className="flex-1 flex items-center justify-center px-6">
+        <div className="flex-grow flex items-center justify-center px-6">
           <p className="text-center text-slate-600 max-w-md">
             {INITIAL_GREETING}
           </p>
@@ -152,13 +152,14 @@ export function Chatbot() {
         <div className="flex flex-wrap gap-2 justify-center">
           {GUIDED_PROMPTS.map((prompt) => (
             <button
-              key={prompt}
-              onClick={() => handleSendMessage(prompt)}
+              key={prompt.scenario}
+              onClick={() => handleSendMessage(prompt.label)}
               className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full text-sm transition-colors"
             >
               {prompt}
             </button>
           ))}
+          
         </div>
       </div>
 
