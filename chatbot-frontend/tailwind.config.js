@@ -1,20 +1,21 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./App.tsx",
-    "./Chat.tsx",
-    "./src/**/*.{js,ts,jsx,tsx}",
-    "./components/**/*.{js,ts,jsx,tsx}",
-    "./figma_components/**/*.{js,ts,jsx,tsx}",
+content: [
+  "./src/renderer/index.html",
+  "./src/renderer/src/**/*.{js,ts,jsx,tsx}",
   ],
     theme: {
       extend: {
-        colors: {
-          primary: {
-            DEFAULT: "var(--primary)",
-            foreground: "var(--primary-foreground)",
-          },
+      colors: {
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
           care: {
             light: '#a1d7d6',
             dark: '#005f63',
