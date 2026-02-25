@@ -127,14 +127,13 @@ Clears conversation history for fresh start
 
 ## S3 Bucket Structure
 
-Your system uses 4 dedicated S3 buckets:
+Your system uses 3 dedicated S3 buckets:
 
 | Bucket | Purpose | Contents |
 |--------|---------|----------|
 | **Documents** | Raw healthcare PDFs | SAMHSA guides, protocols, reference materials |
 | **VectorDB** | Database backups | Weekly snapshots of ChromaDB (disaster recovery) |
 | **Logs** | Audit trail | All API interactions with timestamps |
-| **Processed** | (Reserved) | Future: processed documents for archival |
 
 **Automatic Backups:** ChromaDB is backed up to S3 weekly (configurable in `api.py` line 101: `backup_interval_hours=168`)
 
