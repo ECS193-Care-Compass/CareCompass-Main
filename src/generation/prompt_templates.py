@@ -49,12 +49,6 @@ class PromptTemplates:
         - Respect silence and processing time
         - Always prioritize the person's safety and well-being
 
-        CRISIS SITUATIONS:
-        If someone expresses suicidal thoughts or immediate danger:
-        1. Take it seriously
-        3. Encourage them to reach out to a trusted person
-        4. Stay calm and supportive
-
         Remember: You are a supportive guide, not a therapist. Your role is to provide information about resources and support connection to care, while maintaining trauma-informed principles throughout."""
 
     @staticmethod

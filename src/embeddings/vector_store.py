@@ -1,10 +1,13 @@
 """
 Vector store management using ChromaDB
+Supports both local and AWS Lambda environments
 """
 from typing import List, Dict, Any, Optional
 import chromadb
 from chromadb.config import Settings
 from chromadb.utils import embedding_functions
+import os
+import tempfile
 from config.settings import VECTORSTORE_DIR, EMBEDDING_MODEL, TOP_K
 from src.utils.logger import get_logger
 
@@ -17,9 +20,14 @@ class VectorStore:
     def __init__(self, collection_name: str = "care_bot_documents"):
         self.collection_name = collection_name
         
+        # Determine vectorstore path (handle Lambda environment)
+        vectorstore_path = self._get_vectorstore_path()
+        
+        logger.info(f"Using vectorstore path: {vectorstore_path}")
+        
         # Initialize ChromaDB client
         self.client = chromadb.PersistentClient(
-            path=str(VECTORSTORE_DIR),
+            path=str(vectorstore_path),
             settings=Settings(
                 anonymized_telemetry=False,
                 allow_reset=True
@@ -35,6 +43,29 @@ class VectorStore:
         self.collection = self._get_or_create_collection()
         
         logger.info(f"Initialized VectorStore with collection: {collection_name}")
+    
+    def _get_vectorstore_path(self) -> str:
+        """
+        Get appropriate vectorstore path for environment
+        Uses /tmp for Lambda, or local path for development
+        """
+        # Check if running in Lambda
+        if os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+            # In Lambda, use /tmp (ephemeral storage)
+            path = "/tmp/vectorstore"
+            os.makedirs(path, exist_ok=True)
+            logger.info("Running in Lambda - using /tmp for vectorstore")
+            return path
+        else:
+            # Local development - use configured path
+            vectorstore_path = VECTORSTORE_DIR
+            if isinstance(vectorstore_path, str):
+                os.makedirs(vectorstore_path, exist_ok=True)
+                return vectorstore_path
+            else:
+                # It's a Path object
+                vectorstore_path.mkdir(parents=True, exist_ok=True)
+                return str(vectorstore_path)
     
     def _get_or_create_collection(self):
         """Get existing collection or create new one"""

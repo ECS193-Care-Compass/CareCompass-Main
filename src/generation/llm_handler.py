@@ -194,14 +194,18 @@ class LLMHandler:
         """Prepend crisis protocol instructions to the prompt."""
         instruction = """
 === CRISIS PROTOCOL — SUICIDAL IDEATION DETECTED ===
-Your response MUST follow this order:
-1. Open with immediate, warm acknowledgment of their pain — no preamble
-2. Provide crisis resources clearly and early:
-     • 988 Suicide & Crisis Lifeline — call or text 988 (free, 24/7)
-     • Crisis Text Line — text HOME to 741741
-3. Keep the response brief, calm, and human — not clinical or list-heavy
-4. Do NOT launch into general resources before connecting with them first
-5. End with one gentle, open invitation to keep talking
+User has expressed suicidal thoughts or self-harm ideation.
+
+Your response MUST:
+1. Open with immediate, warm acknowledgment of their pain
+2. Provide these crisis resources early in your response:
+   • 988 Suicide & Crisis Lifeline — call or text 988 (free, 24/7)
+   • Crisis Text Line — text HOME to 741741
+3. Keep the tone calm, human, and not clinical
+4. Answer their question while maintaining safety focus
+5. End with a gentle invitation to keep talking
+
+DO NOT include these resources in normal (non-crisis) conversations.
 
 =====================================================
 

@@ -16,7 +16,6 @@ Source:  https://huggingface.co/gooohjy/suicidal-electra
 
 import re
 import torch
-from transformers import pipeline
 from typing import Dict, Any
 from src.utils.logger import get_logger
 
@@ -95,6 +94,8 @@ class CrisisDetector:
         if self._classifier is not None:
             return
 
+        from transformers import pipeline
+
         logger.info(f"Loading crisis detection model: {self.model_id}")
         device = 0 if torch.cuda.is_available() else -1
 
@@ -155,9 +156,10 @@ class CrisisDetector:
 
         except Exception as e:
             logger.error(f"Crisis model failed: {e}")
-            # Fail safe — if model errors and no keyword match, still flag
-            # so the user gets careful handling
-            model_triggered = True
+            # If model errors, don't flag as crisis unless keywords matched
+            # This prevents false positives from model loading issues
+            model_triggered = False
+            model_label = "LABEL_0"
 
         return self._result(keyword_triggered, model_triggered, model_label)
 

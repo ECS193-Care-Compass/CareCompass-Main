@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import ReactMarkdown from 'react-markdown'
+import ReactMarkdown from 'react-markdown' 
+import { sendChatMessage } from './api'
 
 interface Message {
   role: 'user' | 'ai' | 'error';
@@ -12,7 +13,7 @@ function App(): React.JSX.Element {
     { role: 'ai', text: 'Hello! I am CareCompass. How can I help you today?' }
   ])
   const [isLoading, setIsLoading] = useState(false)
-  const [scenario, setScenario] = useState<string | null>(null)
+  const [scenario, setScenario] = useState<string | undefined>(undefined)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll to bottom when new messages arrive
@@ -40,16 +41,7 @@ function App(): React.JSX.Element {
     setIsLoading(true)
 
     try {
-      const response = await fetch('http://localhost:8000/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          query: userMessage,
-          scenario: scenario
-        }),
-      })
-
-      const data = await response.json()
+      const data = await sendChatMessage(userMessage, scenario)
       setMessages((prev) => [...prev, { role: 'ai', text: data.response }])
     } catch (error) {
       setMessages((prev) => [...prev, { 
@@ -68,7 +60,7 @@ function App(): React.JSX.Element {
       // Ignore if backend is down
     }
     setMessages([{ role: 'ai', text: 'Hello! I am CareCompass. How can I help you today?' }])
-    setScenario(null)
+    setScenario(undefined)
   }
 
   // Quick reply options
@@ -148,7 +140,7 @@ function App(): React.JSX.Element {
         {categories.map((cat) => (
           <button
             key={cat.id}
-            onClick={() => setScenario(scenario === cat.id ? null : cat.id)}
+            onClick={() => setScenario(scenario === cat.id ? undefined : cat.id)}
             style={{
               padding: '6px 12px',
               borderRadius: '16px',
