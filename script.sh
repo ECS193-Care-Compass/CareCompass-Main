@@ -6,12 +6,14 @@ echo "Installing CARE Bot dependencies..."
 
 pip install --upgrade pip
 
-# Use latest versions (not pinned old versions)
-pip install google-genai # Need latest for gemini-1.5-flash
+pip install google-genai
 pip install chromadb
 pip install sentence-transformers
 pip install python-dotenv
 pip install pypdf
+pip install fastapi
+pip install uvicorn
+pip install transformers
+pip install torch
 
-echo "✅ Installation complete!"
-python main.py
+echo "Installation complete!"
