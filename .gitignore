@@ -30,6 +30,12 @@ wheels/
 # Jupyter Notebooks
 .ipynb_checkpoints/
 
+# Test & Coverage
+.pytest_cache/
+.coverage
+coverage/
+htmlcov/
+
 # IDE
 .idea/
 .vscode/
@@ -41,8 +47,29 @@ wheels/
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+
+# Build artifacts
+aws/lambda/build/
+chatbot-frontend/build/
+dist/
+out/
+
+# AWS/SAM
+.aws-sam/
+
+# Test artifacts and outputs
+response.json
+temp_payload.json
+test_outputs/
+*.test.json
+
+# Data (processed data and vectorstore)
+data/processed/vectorstore/
 logs/
 
 # Data (uncomment if you don't want to track data)
@@ -59,7 +86,11 @@ logs/
 # Results (uncomment if you don't want to track results)
 # results/
 
-# Secrets
+# Secrets & Environment
 .env
+.env.local
+.env.*.local
 *.secret
 secrets.yaml
+aws_credentials
+.aws/credentials

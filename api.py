@@ -8,8 +8,44 @@ from pydantic import BaseModel
 from typing import Optional
 from main import CAREBot
 from src.utils.logger import get_logger
+import boto3
+import json
+from datetime import datetime
+import os
 
 logger = get_logger(__name__)
+
+# Initialize S3 client
+try:
+    s3_client = boto3.client('s3', region_name='us-east-1')
+    S3_LOGS_BUCKET = os.getenv('S3_LOGS_BUCKET', 'care-compass-logs-432732422396-dev')
+except:
+    s3_client = None
+    S3_LOGS_BUCKET = None
+
+def log_to_s3(endpoint: str, status: str, data: dict):
+    """Log API calls to S3"""
+    if not s3_client or not S3_LOGS_BUCKET:
+        return
+    
+    try:
+        timestamp = datetime.now().isoformat()
+        log_entry = {
+            "timestamp": timestamp,
+            "endpoint": endpoint,
+            "status": status,
+            "data": data
+        }
+        
+        key = f"interactions/{timestamp.split('T')[0]}/{timestamp}.json"
+        s3_client.put_object(
+            Bucket=S3_LOGS_BUCKET,
+            Key=key,
+            Body=json.dumps(log_entry, indent=2),
+            ContentType='application/json'
+        )
+    except Exception as e:
+        logger.warning(f"Failed to log to S3: {e}")
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -87,6 +123,14 @@ async def chat(request: ChatRequest):
             scenario_category=request.scenario
         )
         
+        # Log to S3
+        log_to_s3("/chat", "success", {
+            "query": request.query,
+            "scenario": request.scenario,
+            "is_crisis": result["is_crisis"],
+            "docs_retrieved": result["num_docs_retrieved"]
+        })
+        
         return ChatResponse(
             response=result["response"],
             is_crisis=result["is_crisis"],
@@ -97,6 +141,7 @@ async def chat(request: ChatRequest):
     
     except Exception as e:
         logger.error(f"Error processing chat: {str(e)}")
+        log_to_s3("/chat", "error", {"error": str(e)})
         raise HTTPException(status_code=500, detail="Error processing your message")
 
 
@@ -104,24 +149,29 @@ async def chat(request: ChatRequest):
 async def clear_conversation():
     """Clear conversation history for a fresh start"""
     bot.clear_conversation()
+    log_to_s3("/clear", "success", {})
     return {"status": "cleared", "message": "Conversation history cleared"}
 
 
 @app.get("/stats", response_model=StatsResponse)
 async def get_stats():
     """Get bot statistics"""
-    return bot.get_stats()
+    stats = bot.get_stats()
+    log_to_s3("/stats", "success", {})
+    return stats
 
 
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
+    log_to_s3("/health", "success", {})
     return {"status": "ok", "message": "CARE Bot API is running"}
 
 
 @app.get("/categories")
 async def get_categories():
     """Get available scenario categories"""
+    log_to_s3("/categories", "success", {})
     return {
         "categories": [
             {"id": "immediate_followup", "name": "Medical Follow-Up", "description": "STI/HIV testing, medical appointments, prophylaxis"},
