@@ -62,7 +62,7 @@ class CAREBot:
         """
         logger.info(f"Processing query: '{user_query[:50]}...'")
 
-        # ── Step 1: Crisis Detection ───────────────────────────────────────────
+        # ── Step 1: Crisis Detection ──────────────────────────────────────────
         crisis_info = {"is_crisis": False, "keyword_triggered": False, "model_triggered": False}
 
         if check_crisis:
@@ -91,7 +91,7 @@ class CAREBot:
         except Exception as e:
             logger.error(f"Error in retrieval: {str(e)}")
 
-        # ── Step 3: Construct Prompt ───────────────────────────────────────────
+        # ── Step 3: Construct Prompt ──────────────────────────────────────────
         if scenario_category:
             prompt = self.prompt_templates.get_scenario_specific_prompt(
                 user_query,
@@ -104,8 +104,8 @@ class CAREBot:
                 retrieved_docs
             )
 
-        # ── Step 4: Generate Response ──────────────────────────────────────────
-        # Pass is_crisis flag — LLMHandler injects crisis instructions if True
+        # ── Step 4: Generate Response ───────────────────────────────────────────
+        # Pass is_crisis flag – LLMHandler injects crisis instructions if True
         llm_response = self.llm_handler.generate_response(
             prompt,
             user_query=user_query,
@@ -115,7 +115,7 @@ class CAREBot:
 
         logger.info(f"Generated response of length: {len(response_text)}")
 
-        # ── Step 5: Build result ───────────────────────────────────────────────
+        # ── Step 5: Build result ─────────────────────────────────────────────
         result = {
             "response":           response_text,
             "is_crisis":          crisis_info["is_crisis"],

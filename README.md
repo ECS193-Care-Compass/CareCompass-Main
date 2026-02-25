@@ -34,7 +34,6 @@ GOOGLE_API_KEY=your_gemini_api_key_here
 
 # AWS S3 Buckets (created automatically, or provide your own)
 S3_DOCUMENTS_BUCKET=care-compass-documents-{account-id}-dev
-S3_PROCESSED_BUCKET=care-compass-processed-{account-id}-dev
 S3_VECTORDB_BUCKET=care-compass-vectordb-{account-id}-dev
 S3_LOGS_BUCKET=care-compass-logs-{account-id}-dev
 

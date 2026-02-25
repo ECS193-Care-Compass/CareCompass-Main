@@ -28,7 +28,7 @@ aws/
 ├── deployment/
 │   ├── deploy.ps1          # Windows deployment
 │   ├── deploy.sh           # Mac/Linux deployment
-│   └── .env.example        # Environment template
+│   └── .env.example        # Reference only (use root .env)
 └── README.md               # This file
 ```
 
@@ -39,6 +39,7 @@ aws/
 - AWS SAM CLI
 - Python 3.11+
 - Google Generative AI Key
+- Root `.env` file configured (copy from `.env.example` and fill in your values)
 
 ### Deploy to Lambda (2 minutes)
 
