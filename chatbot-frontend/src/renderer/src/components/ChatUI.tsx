@@ -63,7 +63,7 @@ export default function ChatUI({
                   ? 'bg-teal-700 text-white rounded-tr-none' 
                   : 'bg-white text-cyan-950 rounded-tl-none shadow-sm'
               }`}>
-                <ReactMarkdown>{msg.text}</ReactMarkdown>
+                <ReactMarkdown>{msg.content}</ReactMarkdown>
               </div>
             </motion.div>
           ))}

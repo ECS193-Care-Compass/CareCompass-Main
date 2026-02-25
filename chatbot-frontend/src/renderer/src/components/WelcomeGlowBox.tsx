@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
-import { ScrollArea } from "./ui/scroll-area"
+
 import ReactMarkdown from "react-markdown"
 import { ArrowUp } from "lucide-react"
 

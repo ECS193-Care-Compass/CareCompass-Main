@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { ArrowUp } from 'lucide-react'
 import { motion } from 'framer-motion'
