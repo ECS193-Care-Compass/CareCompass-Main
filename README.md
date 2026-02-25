@@ -91,11 +91,11 @@ Frontend ready at: `http://localhost:5173`
             ↓           ↓          ↓         ↓
             └───────────────────────────────┘
                             ↓
-            ┌───────────────────────────────┐
-            ↓           ↓          ↓         ↓
-        [Documents] [Logs]    [VectorDB] [Processed]
-         (S3)       (S3)       (S3)        (S3)
-        Raw PDFs   API Calls  Backups    (Future)
+            ┌──────────────────────┐
+            ↓           ↓          ↓         
+        [Documents] [Logs]    [VectorDB] 
+         (S3)       (S3)       (S3)       
+        Raw PDFs   API Calls  Backups    
 ```
 
 ## API Endpoints
