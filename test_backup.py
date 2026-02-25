@@ -13,7 +13,10 @@ logger = logging.getLogger(__name__)
 sys.path.insert(0, str(Path(__file__).parent))
 sys.path.insert(0, str(Path(__file__).parent / "aws" / "lambda"))
 
-from s3_manager import S3Manager
+try:
+    from s3_manager import S3Manager  # type: ignore
+except ImportError:
+    S3Manager = None  # type: ignore
 from src.utils.backup_scheduler import BackupScheduler
 from config.settings import VECTORSTORE_DIR
 

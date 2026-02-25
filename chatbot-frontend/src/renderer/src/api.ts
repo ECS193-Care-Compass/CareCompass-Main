@@ -1,5 +1,5 @@
 // chatbot-frontend/src/renderer/src/api.ts
-// API client for CARE Bot (FastAPI or AWS Lambda backend)
+// API client for CARE Bot (FastAPI Backend)
 
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
@@ -78,7 +78,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
 /**
  * Send a chat message to CARE Bot
  * @param query - User's message/question
- * @param scenario - Optional scenario category (immediate_followup, mental_health, etc.)
+ * @param scenario - Optional scenario category
  * @returns Chat response with bot reply and metadata
  */
 export async function sendChatMessage(

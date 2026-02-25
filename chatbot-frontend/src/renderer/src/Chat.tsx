@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { sendChatMessage } from './api'
 
 export const Chat = () => {
    const [input, setInput] = useState('')
@@ -9,15 +10,12 @@ export const Chat = () => {
       const newMessages = [...messages, { role: 'user', text: input }]
       setMessages(newMessages)
       
-      // Call your Python Backend (running on localhost:8000)
-      const response = await fetch('http://localhost:8000/chat', {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ query: input })
-      })
-      
-      const data = await response.json()
-      setMessages([...newMessages, { role: 'bot', text: data.response }])
+      try {
+        const data = await sendChatMessage(input)
+        setMessages([...newMessages, { role: 'bot', text: data.response }])
+      } catch (error) {
+        setMessages([...newMessages, { role: 'error', text: 'Failed to connect to backend' }])
+      }
       setInput('')
    }
 

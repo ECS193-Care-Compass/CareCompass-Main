@@ -109,3 +109,6 @@ chroma_data/
 *.db
 *.sqlite
 *.sqlite3
+
+# Backend references (Node.js TypeScript version)
+chatbot-backend/

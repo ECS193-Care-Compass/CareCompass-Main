@@ -215,12 +215,12 @@ curl http://localhost:8000/health
 
 ## Key Features
 
-✅ **Trauma-Informed:** Responses follow SAMHSA principles  
-✅ **Fast Retrieval:** Local vector search (~300ms)  
-✅ **Crisis Detection:** Immediate escalation when needed  
-✅ **Auto-Backup:** Weekly database backups to AWS S3  
-✅ **Audit Trail:** All interactions logged  
-✅ **Multi-Scenario:** Tailored responses for different situations  
+**Trauma-Informed:** Responses follow SAMHSA principles  
+**Fast Retrieval:** Local vector search (~300ms)  
+**Crisis Detection:** Immediate escalation when needed  
+**Auto-Backup:** Weekly database backups to AWS S3  
+**Audit Trail:** All interactions logged  
+**Multi-Scenario:** Tailored responses for different situations  
 
 ## Environment Setup Details
 
@@ -249,104 +249,3 @@ For issues, check:
 2. Browser console for frontend errors
 3. S3 console for backup status
 4. Ensure all environment variables are set
-│
-├── src/
-│   ├── embeddings/
-│   │   ├── document_processor.py    # PDF processing & chunking
-│   │   └── vector_store.py          # ChromaDB management
-│   │
-│   ├── retrieval/
-│   │   └── retriever.py             # Semantic search & retrieval
-│   │
-│   ├── generation/
-│   │   ├── prompt_templates.py      # Trauma-informed prompts
-│   │   └── llm_handler.py           # Gemini API interface
-│   │
-│   ├── safety/
-│   │   └── crisis_detector.py       # Crisis detection & response
-│   │
-│   └── utils/
-│       └── logger.py                # Logging utilities
-│
-├── data/
-│   ├── raw/                         # Source documents (PDFs)
-│   └── processed/
-│       └── vectorstore/             # ChromaDB persistent storage
-│
-├── logs/                            # Application logs
-│
-└── tests/                           # Unit tests
-```
-
-## Customization
-
-### Adding New Documents
-
-1. Place PDF in `data/raw/`
-2. Update `document_processor.py` to include new source
-3. Rebuild vector store:
-
-```python
-bot = CAREBot()
-bot.initialize_vector_store(force_rebuild=True)
-```
-
-### Modifying Retrieval
-
-Adjust parameters in `config/settings.py`:
-
-```python
-TOP_K = 5  # Retrieve more documents
-CHUNK_SIZE = 1000  # Larger chunks
-CHUNK_OVERLAP = 100  # More overlap between chunks
-```
-
-### Customizing Prompts
-
-Edit templates in `src/generation/prompt_templates.py`:
-
-```python
-class PromptTemplates:
-    @staticmethod
-    def get_system_prompt() -> str:
-        # Modify the base system prompt
-        return """Your custom system prompt..."""
-```
-
-### Adding Scenario Categories
-
-Update `config/trauma_informed_principles.py`:
-
-```python
-SCENARIO_CATEGORIES = {
-    "your_new_category": {
-        "name": "Category Name",
-        "description": "Description",
-        "priority": "high"
-    }
-}
-```
-
-## Testing
-
-Run tests:
-
-```bash
-pytest tests/
-```
-
-Test individual components:
-
-```bash
-# Test document processing
-python src/embeddings/document_processor.py
-
-# Test vector store
-python src/embeddings/vector_store.py
-
-# Test retrieval
-python src/retrieval/retriever.py
-
-# Test crisis detection
-python src/safety/crisis_detector.py
-```
