@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { Button } from "./ui/button"
 import { Input } from "./ui/input"
-
 import ReactMarkdown from "react-markdown"
 import { ArrowUp } from "lucide-react"
 
@@ -18,41 +16,42 @@ export const WelcomeGlowBox = () => {
 
   useEffect(() => {
     if (chatRef.current) {
-      chatRef.current.scrollTop = chatRef.current.scrollHeight
+      chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }
-  }, [messages])
+  }, [messages]);
 
-  const sendMessage = async (override?: string) => {
-    const text = (override ?? input).trim();
-    if (!text || isLoading) return;
+  const sendMessage = async (text?: string) => {
+    const query = (text ?? input).trim();
+    if (!query || isLoading) return;
+    
     setInput("");
-    setMessages((prev) => [...prev, { role: "user", text }]);
+    setMessages((prev) => [...prev, { role: "user", text: query }]);
     setIsLoading(true);
 
     try {
       const res = await fetch("http://localhost:8000/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: text }),
+        body: JSON.stringify({ query }),
       });
       const data = await res.json();
       setMessages((prev) => [...prev, { role: "ai", text: data.response }]);
-    } catch (e) {
-      setMessages((prev) => [...prev, { role: "error", text: "Connection error." }]);
+    } catch {
+      setMessages((prev) => [...prev, { role: "error", text: "Connection error. Please try again." }]);
     } finally {
       setIsLoading(false);
     }
   };
 
   const GUIDED_PROMPTS = [
-    { label: "Mental Health Support", scenario: "mental_health" },
-    { label: "Practical Needs Help", scenario: "practical_social" },
-    { label: "Legal & Advocacy Help", scenario: "legal_advocacy" },
+    "I need mental health support",
+    "Help with practical needs",
+    "Legal and advocacy information",
   ];
 
   return (
-    <div className="flex flex-col w-full max-w-5xl mx-5 sm:mx-9 md:mx-auto px-4 sm:px-6 md:px-12 py-2 transition-all duration-300 border border-transparent rounded-3xl hover:bg-transparent hover:border-teal-700/40 group min-h-fit">
-      {/* Message Area (always same height, greeting shown inside when empty) */}
+    <div className="flex flex-col w-full max-w-5xl mx-5 sm:mx-9 md:mx-auto px-4 sm:px-6 md:px-12 py-2 transition-all duration-300 border border-teal-700/20 rounded-3xl bg-white/5 hover:bg-white/10 hover:border-teal-700/40 group min-h-fit">
+      {/* Message Area */}
       <div className="flex-1 w-full">
         <div ref={chatRef} className="h-[56vh] md:h-[500px] overflow-y-auto px-4 py-4">
           <div className="space-y-4 h-full">
@@ -68,29 +67,29 @@ export const WelcomeGlowBox = () => {
               <>
                 {messages.map((m, i) => (
                   <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[80%] p-3 rounded-lg text-sm ${m.role === "user" ? "bg-teal-700 text-white rounded-tr-none" : "bg-white text-cyan-950 shadow-sm rounded-tl-none"}`}>
+                    <div className={`max-w-[80%] p-3 rounded-lg text-sm ${m.role === "user" ? "bg-teal-700 text-white" : m.role === "error" ? "bg-red-100/70 text-red-900" : "bg-white text-teal-950 shadow-sm"}`}>
                       <ReactMarkdown>{m.text}</ReactMarkdown>
                     </div>
                   </div>
                 ))}
-                {isLoading && <div className="text-xs text-cyan-800 animate-pulse">Thinking...</div>}
+                {isLoading && <div className="text-xs text-teal-700/70 animate-pulse">Thinking...</div>}
               </>
             )}
           </div>
         </div>
       </div>
 
-      {/* Guided Prompts (above input) */}
-      <div className="flex flex-wrap justify-center gap-4 mt-4">
-        {GUIDED_PROMPTS.map((p) => (
-          <Button
-            key={p.label}
-            variant="outline"
-            onClick={() => sendMessage(p.scenario)}
-            className="px-6 py-3 text-teal-900 border-teal-800/20 bg-white/40 rounded-2xl hover:bg-white/60 hover:border-teal-800/40"
+      {/* Guided Prompts */}
+      <div className="flex flex-wrap justify-center gap-3 mt-4">
+        {GUIDED_PROMPTS.map((prompt) => (
+          <button
+            key={prompt}
+            onClick={() => sendMessage(prompt)}
+            disabled={isLoading}
+            className="px-5 py-2 text-sm text-teal-900 border border-teal-700/30 bg-white/30 rounded-2xl hover:bg-white/50 hover:border-teal-700/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
           >
-            {p.label}
-          </Button>
+            {prompt}
+          </button>
         ))}
       </div>
 
@@ -100,14 +99,16 @@ export const WelcomeGlowBox = () => {
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') sendMessage(); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") sendMessage();
+            }}
             placeholder="How can I help you safely?"
-            className="w-full bg-white/90 border-none rounded-xl py-4 md:py-5 pl-4 pr-12 text-sm focus:ring-2 focus:ring-teal-700/40"
+            className="w-full bg-white/80 border-teal-700/20 text-teal-950 placeholder-teal-700/60 rounded-xl py-3 md:py-4 pl-4 pr-12 text-sm focus:ring-2 focus:ring-teal-700/40 focus:border-transparent"
           />
           <button
             onClick={() => sendMessage()}
             disabled={!input.trim() || isLoading}
-            className="absolute right-2 p-1.5 bg-teal-600 text-white rounded-full hover:bg-teal-700 disabled:bg-teal-600/50 disabled:text-white/70"
+            className="absolute right-2 p-2 bg-teal-600 text-white rounded-full hover:bg-teal-700 transition-colors disabled:bg-teal-600/50 disabled:text-white/70"
           >
             <ArrowUp size={18} />
           </button>
