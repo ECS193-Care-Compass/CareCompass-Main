@@ -200,18 +200,6 @@ python test_backup.py
 curl http://localhost:8000/health
 ```
 
-## Team Deployment Checklist
-
-- [ ] Fork/clone repository
-- [ ] Create `.env` file with API keys
-- [ ] Run `pip install -r requirements.txt`
-- [ ] Start backend: `uvicorn api:app --port 8000`
-- [ ] Start frontend: `npm run dev`
-- [ ] Test at `http://localhost:5173`
-- [ ] Verify S3 backups in AWS console
-- [ ] Create branch for your changes
-- [ ] Push to main when ready
-
 ## Key Features
 
 **Trauma-Informed:** Responses follow SAMHSA principles  
