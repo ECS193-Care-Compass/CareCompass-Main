@@ -84,7 +84,7 @@ async def startup():
     """Initialize CARE Bot and backup scheduler on server startup"""
     global bot, backup_scheduler
     logger.info("Starting CARE Bot API...")
-    bot = CAREBot(warmup_crisis_detector=True)
+    bot = CAREBot(warmup_crisis_detector=False)
 
     
     # Initialize vector store if empty
