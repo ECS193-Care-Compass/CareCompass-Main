@@ -1,13 +1,12 @@
 """
 LLM handler for Google Gemini API
-Using new google-genai library (google.genai)
+Using google-generativeai library
 
 Crisis detection is handled upstream in CAREBot.process_query().
 LLMHandler receives the result via the is_crisis flag and injects
 the appropriate prompt instruction if needed.
 """
-from google import genai
-from google.genai import types
+import google.generativeai as genai
 from typing import Dict, Any, List
 from config.settings import GOOGLE_API_KEY, MODEL_NAME, TEMPERATURE, MAX_OUTPUT_TOKENS
 from src.utils.logger import get_logger
@@ -42,37 +41,22 @@ class LLMHandler:
         self.temperature = temperature
         self.max_tokens = max_tokens
 
-        # Conversation history: list of {"role": "user"/"model", "parts": [text]}
+        # Configure Gemini API
+        genai.configure(api_key=self.api_key)
+
+        # Conversation history
         self.conversation_history: List[Dict] = []
         self.max_history_turns = 10
 
-        # Gemini client
-        self.client = genai.Client(api_key=self.api_key)
-
-        # Generation config with safety settings
-        self.generation_config = types.GenerateContentConfig(
-            temperature=self.temperature,
-            top_p=0.95,
-            top_k=40,
-            max_output_tokens=self.max_tokens,
-            safety_settings=[
-                types.SafetySetting(
-                    category='HARM_CATEGORY_HARASSMENT',
-                    threshold='BLOCK_ONLY_HIGH'
-                ),
-                types.SafetySetting(
-                    category='HARM_CATEGORY_HATE_SPEECH',
-                    threshold='BLOCK_MEDIUM_AND_ABOVE'
-                ),
-                types.SafetySetting(
-                    category='HARM_CATEGORY_SEXUALLY_EXPLICIT',
-                    threshold='BLOCK_ONLY_HIGH'
-                ),
-                types.SafetySetting(
-                    category='HARM_CATEGORY_DANGEROUS_CONTENT',
-                    threshold='BLOCK_MEDIUM_AND_ABOVE'
-                ),
-            ]
+        # Create the model
+        self.model = genai.GenerativeModel(
+            model_name=self.model_name,
+            generation_config=genai.types.GenerationConfig(
+                temperature=self.temperature,
+                top_p=0.95,
+                top_k=40,
+                max_output_tokens=self.max_tokens,
+            ),
         )
 
         logger.info(f"Initialized LLMHandler with model: {model_name}")
@@ -112,11 +96,7 @@ class LLMHandler:
             prompt = self._inject_crisis_instruction(prompt)
 
         try:
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=prompt,
-                config=self.generation_config
-            )
+            response = self.model.generate_content(prompt)
 
             response_text = response.text if hasattr(response, 'text') else ""
 
@@ -165,11 +145,7 @@ class LLMHandler:
     def test_connection(self) -> bool:
         """Test if the Gemini API connection is working."""
         try:
-            self.client.models.generate_content(
-                model=self.model_name,
-                contents="Hello, this is a test.",
-                config=types.GenerateContentConfig(max_output_tokens=10)
-            )
+            self.model.generate_content("Hello, this is a test.")
             return True
         except Exception as e:
             logger.error(f"Connection test failed: {str(e)}")
