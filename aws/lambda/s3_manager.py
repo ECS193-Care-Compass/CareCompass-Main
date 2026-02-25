@@ -25,9 +25,9 @@ class S3Manager:
             region: AWS region (default: us-east-1)
         """
         self.s3_client = boto3.client("s3", region_name=region)
-        self.documents_bucket = os.getenv("S3_DOCUMENTS_BUCKET", "care-compass-documents")
-        self.processed_bucket = os.getenv("S3_PROCESSED_BUCKET", "care-compass-processed")
-        self.vectordb_bucket = os.getenv("S3_VECTORDB_BUCKET", "care-compass-vectordb")
+        self.documents_bucket = os.getenv("S3_DOCUMENTS_BUCKET", "care-compass-documents-432732422396-dev")
+        self.processed_bucket = os.getenv("S3_PROCESSED_BUCKET", "care-compass-processed-432732422396-dev")
+        self.vectordb_bucket = os.getenv("S3_VECTORDB_BUCKET", "care-compass-vectordb-432732422396-dev")
         
         logger.info(f"S3Manager initialized with buckets: {self.documents_bucket}, {self.processed_bucket}, {self.vectordb_bucket}")
     

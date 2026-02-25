@@ -52,12 +52,18 @@ node_modules/
 npm-debug.log
 yarn-error.log
 package-lock.json
+yarn.lock
+.pnpm-debug.log
 
 # Build artifacts
 aws/lambda/build/
 chatbot-frontend/build/
+chatbot-frontend/dist/
 dist/
 out/
+*.dmg
+*.exe
+*.asar
 
 # AWS/SAM
 .aws-sam/
@@ -67,6 +73,8 @@ response.json
 temp_payload.json
 test_outputs/
 *.test.json
+*_test_results.txt
+lambda_test_payload.json
 
 # Data (processed data and vectorstore)
 data/processed/vectorstore/
@@ -94,3 +102,10 @@ logs/
 secrets.yaml
 aws_credentials
 .aws/credentials
+
+# Database & Cache
+.chromadb/
+chroma_data/
+*.db
+*.sqlite
+*.sqlite3

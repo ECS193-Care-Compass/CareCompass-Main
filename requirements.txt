@@ -6,6 +6,7 @@ pypdf==3.17.4
 fastapi
 uvicorn
 boto3==1.26.137
+apscheduler>=3.10.0
 websockets>=13.0.0,<15.1.0
 h11>=0.13,<0.15
 websockets<15.1.0,>=13.0.0
