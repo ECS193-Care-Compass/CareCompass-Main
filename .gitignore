@@ -112,3 +112,11 @@ chroma_data/
 
 # Backend references (Node.js TypeScript version)
 chatbot-backend/
+node_modules
+# Vectorstore data (runtime generated)
+*.bin
+*.sqlite3
+
+# Electron build outputs
+chatbot-frontend/out/
+chatbot-frontend/.vite/
