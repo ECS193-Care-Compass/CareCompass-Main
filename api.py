@@ -16,6 +16,8 @@ from datetime import datetime
 import os
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()
 
 # Import S3Manager from aws/lambda (lambda is reserved, so use dynamic import)
 sys.path.insert(0, str(Path(__file__).parent / "aws" / "lambda"))

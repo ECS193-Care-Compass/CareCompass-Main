@@ -36,6 +36,9 @@ class CAREBot:
         self.llm_handler = LLMHandler()
         self.prompt_templates = PromptTemplates()
 
+        self.initialize_vector_store()
+
+
         # Single CrisisDetector instance — owned by CAREBot, not LLMHandler
         self.crisis_detector = CrisisDetector()
         if warmup_crisis_detector:
@@ -152,7 +155,7 @@ class CAREBot:
         self.llm_handler.clear_history()
         logger.info("Conversation history cleared")
 
-    def initialize_vector_store(self, force_rebuild: bool = False) -> None:
+    def initialize_vector_store(self, force_rebuild: bool = True) -> None:
         """
         Initialize vector store with documents.
 

@@ -111,6 +111,50 @@ class DocumentProcessor:
         
         return chunked_docs
     
+    def process_hiv_documents(self) -> List[Dict[str, Any]]:
+        """Process CDC HIV testing and partner services documents"""
+        hiv_docs = [
+            {
+                "filename": "cdc-hiv-lsht-treatment-brochure-partner-services-provider.pdf",
+                "document_type": "referral_resource",
+                "category": "hiv_partner_services",
+                "scenario_categories": "immediate_followup",
+            },
+            {
+                "filename": "cdc-lsht-testing-poster-an-hiv-test-is-right-for-you-provider.pdf",
+                "document_type": "patient_education",
+                "category": "hiv_testing",
+                "scenario_categories": "immediate_followup",
+            }
+        ]
+        
+        all_chunks = []
+        for doc_info in hiv_docs:
+            pdf_path = RAW_DATA_DIR / doc_info["filename"]
+            
+            if not pdf_path.exists():
+                logger.warning(f"HIV document not found: {pdf_path}")
+                continue
+            
+            # Extract text from PDF
+            documents = self.extract_text_from_pdf(pdf_path)
+            
+            # Add source-specific metadata
+            for doc in documents:
+                doc["metadata"]["document_type"] = doc_info["document_type"]
+                doc["metadata"]["category"] = doc_info["category"]
+                # Store primary scenario category for filtering
+                doc["metadata"]["scenario_category"] = doc_info["scenario_categories"][0]
+                # Store all applicable scenario categories for broader matching
+                doc["metadata"]["scenario_categories"] = doc_info["scenario_categories"]
+            
+            # Chunk documents
+            chunked = self.chunk_documents(documents)
+            all_chunks.extend(chunked)
+            logger.info(f"Processed {doc_info['filename']}: {len(chunked)} chunks")
+        
+        return all_chunks
+    
     def process_all_documents(self) -> List[Dict[str, Any]]:
         """Process all documents in the raw data directory"""
         all_documents = []
@@ -120,8 +164,10 @@ class DocumentProcessor:
         samhsa_docs = self.process_samhsa_document()
         all_documents.extend(samhsa_docs)
         
-        # Here you would add processing for other documents
-        # For example, scenario documents, referral information, etc.
+        # Process HIV documents
+        logger.info("Processing HIV documents...")
+        hiv_docs = self.process_hiv_documents()
+        all_documents.extend(hiv_docs)
         
         logger.info(f"Total processed documents: {len(all_documents)}")
         return all_documents
@@ -130,9 +176,27 @@ class DocumentProcessor:
 if __name__ == "__main__":
     # Test document processing
     processor = DocumentProcessor()
-    docs = processor.process_samhsa_document()
     
-    print(f"\nProcessed {len(docs)} document chunks")
-    print(f"\nSample chunk:")
-    print(f"Text: {docs[0]['text'][:200]}...")
-    print(f"Metadata: {docs[0]['metadata']}")
+    print("=" * 60)
+    print("Testing SAMHSA document processing...")
+    print("=" * 60)
+    docs = processor.process_samhsa_document()
+    print(f"Processed {len(docs)} chunks")
+    if docs:
+        print(f"Sample chunk text: {docs[0]['text'][:200]}...")
+        print(f"Sample metadata: {docs[0]['metadata']}")
+    
+    print("\n" + "=" * 60)
+    print("Testing HIV document processing...")
+    print("=" * 60)
+    hiv_docs = processor.process_hiv_documents()
+    print(f"Processed {len(hiv_docs)} chunks")
+    if hiv_docs:
+        print(f"Sample chunk text: {hiv_docs[0]['text'][:200]}...")
+        print(f"Sample metadata: {hiv_docs[0]['metadata']}")
+    
+    print("\n" + "=" * 60)
+    print("Testing full pipeline...")
+    print("=" * 60)
+    all_docs = processor.process_all_documents()
+    print(f"Total chunks across all documents: {len(all_docs)}")
