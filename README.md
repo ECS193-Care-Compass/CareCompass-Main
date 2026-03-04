@@ -90,21 +90,32 @@ Frontend ready at: `http://localhost:5173`
 
 All user data stays local — nothing is sent to an external API.
 
+### Windows
 1. **Install Ollama** — download from [ollama.com](https://ollama.com)
-2. **Pull a model**:
+2. **Pull a model**: `ollama pull llama3.1`
+3. Ollama runs automatically in the background after install.
+
+### WSL (recommended for development)
+1. **Install dependencies and Ollama**:
    ```bash
-   ollama pull llama3.1
+   sudo apt-get install zstd -y
+   curl -fsSL https://ollama.com/install.sh | sh
    ```
+2. **Pull a model**: `ollama pull llama3.1`
 3. **Start Ollama**:
    ```bash
    ollama serve
    ```
-4. **Set your `.env`**:
-   ```env
-   LLM_PROVIDER=ollama
-   OLLAMA_MODEL=llama3.1
-   ```
-5. **Start the backend** as usual — the provider switch is automatic.
+
+> **Note:** Install Ollama inside WSL (not the Windows app) so the backend can reach it on `localhost`. WSL2 automatically passes through NVIDIA GPU access — verify with `nvidia-smi`.
+
+### Configuration
+Set your root `.env`:
+```env
+LLM_PROVIDER=ollama
+OLLAMA_MODEL=llama3.1
+```
+Start the backend as usual — the provider switch is automatic.
 
 ## Architecture
 
