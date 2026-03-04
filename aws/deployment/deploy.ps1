@@ -106,13 +106,13 @@ Copy-Item (Join-Path $lambdaDir "s3_manager.py") (Join-Path $buildDir "s3_manage
 
 # Copy source code
 Write-Host "  Copying source code..." -ForegroundColor Gray
-$srcDir = Join-Path $projectRoot "src"
+$srcDir = Join-Path $projectRoot "backend/src"
 Copy-Item $srcDir (Join-Path $buildDir "src") -Recurse
 
-$configDir = Join-Path $projectRoot "config"
+$configDir = Join-Path $projectRoot "backend/config"
 Copy-Item $configDir (Join-Path $buildDir "config") -Recurse
 
-$mainFile = Join-Path $projectRoot "main.py"
+$mainFile = Join-Path $projectRoot "backend/main.py"
 Copy-Item $mainFile (Join-Path $buildDir "main.py")
 
 # Install dependencies

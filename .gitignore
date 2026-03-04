@@ -59,6 +59,8 @@ yarn.lock
 aws/lambda/build/
 chatbot-frontend/build/
 chatbot-frontend/dist/
+chatbot-frontend/out/
+chatbot-frontend/.vite/
 dist/
 out/
 *.dmg
@@ -80,20 +82,6 @@ lambda_test_payload.json
 data/processed/vectorstore/
 logs/
 
-# Data (uncomment if you don't want to track data)
-# data/
-# *.csv
-# *.json
-
-# Model checkpoints (uncomment if needed)
-# checkpoints/
-# *.pt
-# *.pth
-# *.ckpt
-
-# Results (uncomment if you don't want to track results)
-# results/
-
 # Secrets & Environment
 .env
 .env.local
@@ -109,17 +97,10 @@ chroma_data/
 *.db
 *.sqlite
 *.sqlite3
-
-# Backend references (Node.js TypeScript version)
-chatbot-backend/
-node_modules
-# Vectorstore data (runtime generated)
 *.bin
-*.sqlite3
 
-# Electron build outputs
-chatbot-frontend/out/
-chatbot-frontend/.vite/
-node_modules
-node_modules
-node_modules
+# Abandoned Node.js backend
+chatbot-backend/
+
+#claude
+CLAUDE.md

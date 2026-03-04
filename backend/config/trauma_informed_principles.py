@@ -72,22 +72,6 @@ SCENARIO_CATEGORIES = {
     }
 }
 
-# Crisis indicators that requires immediate escalation
-CRISIS_INDICATORS = [
-    "suicide",
-    "suicidal",
-    "kill myself",
-    "end my life",
-    "want to die",
-    "harm myself",
-    "hurt myself",
-    "self-harm",
-    "cutting",
-    "overdose",
-    "no reason to live",
-    "better off dead"
-]
-
 # Comprehensive referral categories
 REFERRAL_CATEGORIES = {
     "medical": ["Primary care", "STI testing", "HIV testing", "Reproductive health", "Injury follow-up"],

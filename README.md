@@ -1,6 +1,6 @@
 # CARE Bot - Trauma-Informed RAG Chatbot
 
-A trauma-informed chatbot powered by vector embeddings, semantic search, and Google Gemini AI. Built with FastAPI (backend), React + Electron (frontend), and ChromaDB (vector store).
+A trauma-informed chatbot powered by vector embeddings, semantic search, and LLM generation. Built with FastAPI (backend), React + Electron (frontend), and ChromaDB (vector store). Supports Google Gemini API or local Ollama inference.
 
 ## Quick Start
 
@@ -8,13 +8,13 @@ A trauma-informed chatbot powered by vector embeddings, semantic search, and Goo
 
 - **Python 3.12+**
 - **Node.js 18+**
-- **AWS Account** (for S3 storage and Lambda deployment)
-- **Google Gemini API Key** (get one at [https://ai.google.dev](https://ai.google.dev))
+- **Google Gemini API Key** (get one at [https://ai.google.dev](https://ai.google.dev)) — or **Ollama** for on-device inference
+- **AWS Account** (optional, for S3 storage and Lambda deployment)
 
 ### 1. Clone & Setup Backend
 
 ```bash
-cd CareCompass
+cd CareCompass/backend
 
 # Create virtual environment
 python -m venv venv
@@ -26,26 +26,39 @@ pip install -r requirements.txt
 
 ### 2. Configure Environment Variables
 
-Create a `.env` file in the root directory:
+Create a `.env` file in the **project root** (not inside `backend/`):
 
 ```env
-# Google AI API
-GOOGLE_API_KEY=your_gemini_api_key_here
+# LLM Provider — "gemini" (default) or "ollama"
+LLM_PROVIDER=gemini
 
-# AWS S3 Buckets (created automatically, or provide your own)
+# Google Gemini (required when LLM_PROVIDER=gemini)
+GOOGLE_API_KEY=your_gemini_api_key_here
+MODEL_NAME=gemini-2.5-flash
+
+# Ollama (used when LLM_PROVIDER=ollama)
+OLLAMA_MODEL=llama3.1
+OLLAMA_BASE_URL=http://localhost:11434
+
+# Model Configuration (optional)
+TEMPERATURE=0.7
+TOP_K=3
+SIMILARITY_THRESHOLD=0.7
+MAX_OUTPUT_TOKENS=4096
+EMBEDDING_MODEL=all-MiniLM-L6-v2
+ENABLE_CRISIS_DETECTION=true
+
+# AWS S3 Buckets (optional, for backups and logging)
 S3_DOCUMENTS_BUCKET=care-compass-documents-{account-id}-dev
 S3_VECTORDB_BUCKET=care-compass-vectordb-{account-id}-dev
 S3_LOGS_BUCKET=care-compass-logs-{account-id}-dev
-
-# Model Configuration (optional)
-MODEL_NAME=gemini-2.5-flash
-TEMPERATURE=0.7
-TOP_K=3
 ```
 
 ### 3. Run Backend
 
 ```bash
+cd backend
+
 # Development with auto-reload
 uvicorn api:app --host 0.0.0.0 --port 8000 --reload
 
@@ -53,7 +66,7 @@ uvicorn api:app --host 0.0.0.0 --port 8000 --reload
 uvicorn api:app --host 0.0.0.0 --port 8000
 ```
 
-Backend ready at: `http://localhost:8000`  
+Backend ready at: `http://localhost:8000`
 API docs: `http://localhost:8000/docs`
 
 ### 4. Run Frontend
@@ -73,6 +86,26 @@ npm run build
 
 Frontend ready at: `http://localhost:5173`
 
+## Using Ollama (On-Device LLM)
+
+All user data stays local — nothing is sent to an external API.
+
+1. **Install Ollama** — download from [ollama.com](https://ollama.com)
+2. **Pull a model**:
+   ```bash
+   ollama pull llama3.1
+   ```
+3. **Start Ollama**:
+   ```bash
+   ollama serve
+   ```
+4. **Set your `.env`**:
+   ```env
+   LLM_PROVIDER=ollama
+   OLLAMA_MODEL=llama3.1
+   ```
+5. **Start the backend** as usual — the provider switch is automatic.
+
 ## Architecture
 
 ```
@@ -84,78 +117,77 @@ Frontend ready at: `http://localhost:5173`
                             ↓
             ┌───────────────────────────────┐
             ↓           ↓          ↓         ↓
-    [Crisis      [Retrieval] [Embedding] [LLM]
-     Detector]   (ChromaDB)  (Sentence  (Gemini
-                            Transformers) API)
+    [Crisis      [Retrieval] [Embedding] [LLM Provider]
+     Detector]   (ChromaDB)  (Sentence    Gemini API
+     Keywords +              Transformers)  — or —
+     ML Model                             Ollama (local)
             ↓           ↓          ↓         ↓
             └───────────────────────────────┘
                             ↓
             ┌──────────────────────┐
-            ↓           ↓          ↓         
-        [Documents] [Logs]    [VectorDB] 
-         (S3)       (S3)       (S3)       
-        Raw PDFs   API Calls  Backups    
+            ↓           ↓          ↓
+        [Documents] [Logs]    [VectorDB]
+         (S3)       (S3)       (S3)
+        Raw PDFs   API Calls  Backups
 ```
 
 ## API Endpoints
 
-### Chat
+| Method | Path | Purpose |
+|--------|------|---------|
+| POST | `/chat` | Send query (+ optional scenario), get response |
+| POST | `/clear` | Reset conversation history |
+| GET | `/health` | Health check |
+| GET | `/stats` | Bot statistics |
+| GET | `/categories` | Available scenario categories |
+
+### Chat Example
 **POST** `/chat`
 ```json
 {
   "query": "What STI testing do I need?",
-  "scenario": "medical_followup"
+  "scenario": "immediate_followup"
 }
 ```
 
-### Categories
-**GET** `/categories`  
-Returns available support categories (medical, mental health, legal, etc.)
-
-### Health Check
-**GET** `/health`  
-Returns `{"status": "ok"}`
-
-### Stats
-**GET** `/stats`  
-Returns bot statistics (documents indexed, model info, etc.)
-
-### Clear Conversation
-**POST** `/clear`  
-Clears conversation history for fresh start
-
-## S3 Bucket Structure
-
-Your system uses 3 dedicated S3 buckets:
-
-| Bucket | Purpose | Contents |
-|--------|---------|----------|
-| **Documents** | Raw healthcare PDFs | SAMHSA guides, protocols, reference materials |
-| **VectorDB** | Database backups | Weekly snapshots of ChromaDB (disaster recovery) |
-| **Logs** | Audit trail | All API interactions with timestamps |
-
-**Automatic Backups:** ChromaDB is backed up to S3 weekly (configurable in `api.py` line 101: `backup_interval_hours=168`)
+Response:
+```json
+{
+  "response": "...",
+  "is_crisis": false,
+  "num_docs_retrieved": 3,
+  "scenario": "immediate_followup",
+  "blocked": false
+}
+```
 
 ## Core Components
 
-### 1. Crisis Detection (`src/safety/crisis_detector.py`)
-Scans for crisis keywords and provides immediate resources
+### 1. Crisis Detection (`backend/src/safety/crisis_detector.py`)
+Two-layer detection of suicidal ideation and self-harm:
+- **Layer 1** — Keyword matching (fast, no model needed)
+- **Layer 2** — ML model (`gooohjy/suicidal-electra`, ELECTRA-based binary classifier)
 
-### 2. Vector Store (`src/embeddings/vector_store.py`)
-Local ChromaDB for fast semantic search (~300ms)
+A message is flagged if **either** layer triggers. Crisis detection runs **before** retrieval.
 
-### 3. Retriever (`src/retrieval/retriever.py`)
+### 2. Vector Store (`backend/src/embeddings/vector_store.py`)
+Local ChromaDB for fast semantic search
+
+### 3. Retriever (`backend/src/retrieval/retriever.py`)
 Finds top-k relevant documents using cosine similarity
 
-### 4. LLM Handler (`src/generation/llm_handler.py`)
-Interface with Google Gemini API for response generation
+### 4. LLM Handlers (`backend/src/generation/`)
+- `llm_handler.py` — Google Gemini API (default)
+- `ollama_handler.py` — Local Ollama inference (on-device)
 
-### 5. Backup Scheduler (`src/utils/backup_scheduler.py`)
+Selected automatically based on `LLM_PROVIDER` env var.
+
+### 5. Backup Scheduler (`backend/src/utils/backup_scheduler.py`)
 Automatic weekly backups of vector database to S3
 
 ## Configuration
 
-Edit `config/settings.py` to customize:
+Edit `backend/config/settings.py` to customize:
 
 ```python
 CHUNK_SIZE = 500              # Document chunk size (tokens)
@@ -163,7 +195,30 @@ CHUNK_OVERLAP = 50            # Overlap between chunks
 TOP_K = 3                     # Documents to retrieve
 SIMILARITY_THRESHOLD = 0.7    # Minimum similarity score
 TEMPERATURE = 0.7             # LLM creativity (0-1)
+MAX_OUTPUT_TOKENS = 4096      # Max response length
 ```
+
+## Testing
+
+```bash
+cd backend
+
+# Run all tests
+python -m pytest tests/
+
+# Individual test files
+python tests/test_rag.py
+python tests/test_scenarios.py
+python tests/test_backup.py
+```
+
+## S3 Bucket Structure
+
+| Bucket | Purpose | Contents |
+|--------|---------|----------|
+| **Documents** | Raw healthcare PDFs | SAMHSA guides, protocols, reference materials |
+| **VectorDB** | Database backups | Weekly snapshots of ChromaDB (disaster recovery) |
+| **Logs** | Audit trail | All API interactions with timestamps |
 
 ## Troubleshooting
 
@@ -172,66 +227,37 @@ TEMPERATURE = 0.7             # LLM creativity (0-1)
 # Check if port 8000 is in use
 lsof -i :8000          # macOS/Linux
 netstat -ano | findstr :8000  # Windows
-
-# Kill and restart
-pkill -f uvicorn       # macOS/Linux
-taskkill /IM python.exe  # Windows
 ```
 
 ### Vector store initialization slow
 First startup downloads the embedding model (~400MB). Subsequent starts are fast.
 
-### S3 upload errors
-Verify AWS credentials: `~/.aws/credentials`  
-Ensure bucket names match your account ID in `.env`
+### Ollama connection errors
+Make sure Ollama is running (`ollama serve`) and the model is pulled (`ollama pull llama3.1`).
 
 ### Frontend can't reach backend
-Check backend is running: `curl http://localhost:8000/health`  
-Verify CORS is enabled (should be by default)
+Check backend is running: `curl http://localhost:8000/health`
 
-## Testing
+### S3 upload errors
+Verify AWS credentials: `~/.aws/credentials`
+Ensure bucket names match your account ID in `.env`
+
+## AWS Deployment
 
 ```bash
-# Test backup functionality
-python test_backup.py
+# Windows
+./aws/deployment/deploy.ps1 -Environment dev -GoogleApiKey "your_key"
 
-# Manual API test
-curl http://localhost:8000/health
+# Mac/Linux
+./aws/deployment/deploy.sh -e dev -k "your_key"
 ```
 
 ## Key Features
 
-**Trauma-Informed:** Responses follow SAMHSA principles  
-**Fast Retrieval:** Local vector search (~300ms)  
-**Crisis Detection:** Immediate escalation when needed  
-**Auto-Backup:** Weekly database backups to AWS S3  
-**Audit Trail:** All interactions logged  
-**Multi-Scenario:** Tailored responses for different situations  
-
-## Environment Setup Details
-
-### AWS Credentials
-```bash
-# Configure AWS credentials
-aws configure
-
-# Or manually create ~/.aws/credentials:
-[default]
-aws_access_key_id = YOUR_ACCESS_KEY
-aws_secret_access_key = YOUR_SECRET_KEY
-region = us-east-1
-```
-
-### First Run
-The backend will:
-1. Download embedding model (~400MB, first time only)
-2. Initialize ChromaDB vector store
-3. Begin accepting requests
-
-## Support
-
-For issues, check:
-1. Backend logs: `http://localhost:8000/docs` (Swagger UI)
-2. Browser console for frontend errors
-3. S3 console for backup status
-4. Ensure all environment variables are set
+**Trauma-Informed:** Responses follow SAMHSA's six principles
+**Dual LLM Support:** Google Gemini API or local Ollama (privacy-first)
+**Two-Layer Crisis Detection:** Keywords + ML model for reliable safety
+**Fast Retrieval:** Local vector search with ChromaDB
+**Auto-Backup:** Weekly database backups to AWS S3
+**Audit Trail:** All interactions logged
+**Multi-Scenario:** Tailored responses for different support categories

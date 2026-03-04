@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Import S3Manager from aws/lambda (lambda is reserved, so use dynamic import)
-sys.path.insert(0, str(Path(__file__).parent / "aws" / "lambda"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "aws" / "lambda"))
 try:
     from s3_manager import S3Manager  # type: ignore
 except ImportError:
@@ -160,9 +160,8 @@ async def chat(request: ChatRequest):
             scenario_category=request.scenario
         )
         
-        # Log to S3
+        # Log to S3 (non-sensitive metadata only — no user query)
         log_to_s3("/chat", "success", {
-            "query": request.query,
             "scenario": request.scenario,
             "is_crisis": result["is_crisis"],
             "docs_retrieved": result["num_docs_retrieved"]

@@ -10,8 +10,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 # Add paths
-sys.path.insert(0, str(Path(__file__).parent))
-sys.path.insert(0, str(Path(__file__).parent / "aws" / "lambda"))
+BACKEND_DIR = Path(__file__).parent.parent
+PROJECT_ROOT = BACKEND_DIR.parent
+sys.path.insert(0, str(BACKEND_DIR))
+sys.path.insert(0, str(PROJECT_ROOT / "aws" / "lambda"))
 
 try:
     from s3_manager import S3Manager  # type: ignore

@@ -6,8 +6,8 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
-# Create logs directory
-LOGS_DIR = Path(__file__).parent.parent.parent / "logs"
+# Create logs directory (at project root, one level above backend/)
+LOGS_DIR = Path(__file__).parent.parent.parent.parent / "logs"
 LOGS_DIR.mkdir(exist_ok=True)
 
 

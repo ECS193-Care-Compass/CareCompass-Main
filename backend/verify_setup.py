@@ -7,6 +7,10 @@ import sys
 import os
 from pathlib import Path
 
+# Resolve project root (one level above backend/)
+BACKEND_DIR = Path(__file__).parent
+PROJECT_ROOT = BACKEND_DIR.parent
+
 def check_python_version():
     """Check Python version"""
     version = sys.version_info
@@ -20,7 +24,7 @@ def check_python_version():
 
 def check_env_file():
     """Check if .env file exists and has API key"""
-    env_path = Path(".env")
+    env_path = PROJECT_ROOT / ".env"
     
     if not env_path.exists():
         print("✗ .env file not found")
@@ -75,7 +79,7 @@ def check_dependencies():
 
 def check_data_directory():
     """Check if data directories exist"""
-    raw_dir = Path("data/raw")
+    raw_dir = PROJECT_ROOT / "data" / "raw"
     
     if not raw_dir.exists():
         print("✗ data/raw directory not found")
@@ -95,20 +99,20 @@ def check_data_directory():
 
 def check_structure():
     """Check project structure"""
-    required_dirs = [
-        "config",
-        "src/embeddings",
-        "src/retrieval", 
-        "src/generation",
-        "src/safety",
-        "src/utils",
-        "data/raw",
-        "tests"
-    ]
-    
+    required_dirs = {
+        "backend/config": BACKEND_DIR / "config",
+        "backend/src/embeddings": BACKEND_DIR / "src" / "embeddings",
+        "backend/src/retrieval": BACKEND_DIR / "src" / "retrieval",
+        "backend/src/generation": BACKEND_DIR / "src" / "generation",
+        "backend/src/safety": BACKEND_DIR / "src" / "safety",
+        "backend/src/utils": BACKEND_DIR / "src" / "utils",
+        "data/raw": PROJECT_ROOT / "data" / "raw",
+        "backend/tests": BACKEND_DIR / "tests",
+    }
+
     missing = []
-    for dir_path in required_dirs:
-        if not Path(dir_path).exists():
+    for dir_path, abs_path in required_dirs.items():
+        if not abs_path.exists():
             missing.append(dir_path)
     
     if missing:
