@@ -1,5 +1,9 @@
 # CareCompass (CARE Bot) — Backend & Pipeline Summary
 
+## System Diagram
+
+![System Diagram](System_Diagram.png)
+
 ## What It Is
 
 A trauma-informed RAG (Retrieval-Augmented Generation) chatbot for sexual assault survivors. Users ask questions and get responses grounded in authoritative documents (SAMHSA trauma-informed care framework, CDC HIV/testing resources) with built-in crisis safety.
