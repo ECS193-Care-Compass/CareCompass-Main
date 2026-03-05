@@ -36,14 +36,9 @@ TOP_K = int(os.getenv("TOP_K", "3"))
 SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.7"))
 
 # LLM Configuration
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini")  # "gemini" or "ollama"
 MODEL_NAME = os.getenv("MODEL_NAME", "gemini-2.5-flash")
 TEMPERATURE = float(os.getenv("TEMPERATURE", "0.7"))
 MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "4096"))
-
-# Ollama Configuration (used when LLM_PROVIDER=ollama)
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.1")
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
 # Safety Configuration
 ENABLE_CRISIS_DETECTION = os.getenv("ENABLE_CRISIS_DETECTION", "true").lower() == "true"

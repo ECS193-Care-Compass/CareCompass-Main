@@ -8,10 +8,9 @@ from src.embeddings.vector_store import VectorStore
 from src.retrieval.retriever import Retriever
 from src.generation.prompt_templates import PromptTemplates
 from src.generation.llm_handler import LLMHandler
-from src.generation.ollama_handler import OllamaHandler
 from src.safety.crisis_detector import CrisisDetector
 from src.utils.logger import get_logger, log_interaction
-from config.settings import TOP_K, LLM_PROVIDER
+from config.settings import TOP_K
 
 logger = get_logger(__name__)
 
@@ -35,13 +34,7 @@ class CAREBot:
         self.vector_store = VectorStore()
         self.retriever = Retriever(self.vector_store, top_k=top_k)
 
-        # Select LLM backend based on LLM_PROVIDER setting
-        if LLM_PROVIDER == "ollama":
-            logger.info("Using Ollama (on-device) LLM provider")
-            self.llm_handler = OllamaHandler()
-        else:
-            logger.info("Using Google Gemini LLM provider")
-            self.llm_handler = LLMHandler()
+        self.llm_handler = LLMHandler()
 
         self.prompt_templates = PromptTemplates()
 
