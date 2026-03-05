@@ -32,8 +32,8 @@ User (Vercel Frontend)
 
 ### Crisis Detection
 - Remove `gooohjy/suicidal-electra` ML model
-- Keep existing keyword matching (zero cost, catches explicit statements)
-- Add crisis detection instructions to Gemini system prompt (catches nuanced/implicit language — no extra API call since Gemini is already called for every message)
+- Keep existing keyword matching (catches explicit statements)
+- Add crisis detection instructions to Gemini system prompt (catches nuanced/implicit language)
 
 ### Dependencies Removed
 - `torch`, `transformers`, `sentence-transformers` (~2GB)
@@ -49,28 +49,6 @@ User (Vercel Frontend)
 - Small deployment package (<50MB)
 - Low RAM requirement (~256MB)
 - ChromaDB vectorstore loads from S3 in <1 second
-
-### Infrastructure Cost
-
-| Resource | Monthly Cost |
-|----------|-------------|
-| Lambda (first 1M requests/mo free) | $0 |
-| Lambda compute (400K GB-seconds free) | $0 |
-| API Gateway (first 1M calls free) | $0 |
-| S3 (vectorstore, <1GB) | $0.02 |
-| DynamoDB (free tier: 25GB, 25 RCU/WCU) | $0 |
-| **Infrastructure total** | **~$0** |
-
-### API Cost
-
-| API | Cost |
-|-----|------|
-| Gemini 2.5 Flash | ~$0.00045/message |
-| Google text-embedding-004 (free tier: 1,500 req/day) | $0 |
-| **1,000 messages/month** | **~$0.45** |
-| **10,000 messages/month** | **~$4.50** |
-
-**Total: ~$0-5/month at typical usage** (vs ~$33/month with EC2)
 
 ---
 
@@ -143,7 +121,45 @@ App loads
 
 ---
 
-## 5. Backend Code Changes
+## 5. HIPAA-Compliant S3 Configuration
+
+### Requirements
+- **Encryption at rest** — enable SSE-S3 or SSE-KMS on all S3 buckets (vectorstore, documents, logs)
+- **Encryption in transit** — enforce HTTPS-only access via bucket policy (deny `aws:SecureTransport = false`)
+- **Access logging** — enable S3 server access logging to the logs bucket
+- **Versioning** — enable bucket versioning for audit trail and data recovery
+- **Block public access** — enable all four S3 Block Public Access settings on every bucket
+- **IAM least privilege** — Lambda's IAM role should only have access to the specific buckets it needs (read-only for vectorstore, write for logs)
+- **BAA with AWS** — sign an AWS Business Associate Agreement (required for HIPAA — free, done through AWS console under Artifact)
+- **No PHI in logs** — ensure conversation content is never logged to S3; only log non-sensitive metadata (timestamp, scenario, is_crisis, docs_retrieved)
+- **Retention policy** — set lifecycle rules to auto-delete logs after a defined period (e.g., 90 days)
+- **DynamoDB encryption** — enable encryption at rest on the conversation history table (on by default with AWS-owned keys, upgrade to KMS for HIPAA)
+
+### Bucket Policy Example (HTTPS-Only)
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyInsecureTransport",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::BUCKET_NAME",
+        "arn:aws:s3:::BUCKET_NAME/*"
+      ],
+      "Condition": {
+        "Bool": { "aws:SecureTransport": "false" }
+      }
+    }
+  ]
+}
+```
+
+---
+
+## 6. Backend Code Changes
 
 | Current | New |
 |---------|-----|
@@ -153,6 +169,7 @@ App loads
 | No auth | Supabase JWT verification |
 | FastAPI on EC2 | Lambda behind API Gateway |
 | `requirements.txt` includes torch, transformers | Lightweight: google-genai, chromadb, boto3 |
+| S3 buckets (no HIPAA config) | HIPAA-compliant S3 (encryption, logging, access controls) |
 
 ### Files to Modify
 - `backend/src/embeddings/vector_store.py` — switch to `text-embedding-004`
@@ -163,6 +180,7 @@ App loads
 - `backend/requirements.txt` — remove torch/transformers/sentence-transformers
 - `chatbot-frontend/src/renderer/src/api.ts` — send session_id, update base URL to API Gateway
 - `chatbot-frontend/src/renderer/src/App.tsx` — add login/guest flow with Supabase
+- AWS S3/DynamoDB — apply HIPAA-compliant encryption, logging, and access policies
 
 ---
 
@@ -170,11 +188,11 @@ App loads
 
 | Component | Current | Proposed |
 |-----------|---------|----------|
-| Hosting | EC2 (~$33/mo) | Lambda (~$0/mo) |
+| Hosting | EC2 | Lambda |
 | Embeddings | Local model | Google API |
 | Crisis detection | Local model | Keywords + Gemini prompt |
 | Conversation history | In-memory (single user) | DynamoDB (multi-user) |
 | Auth | None | Supabase (optional login) |
 | Guest sessions | N/A | Auto-expire after idle |
 | Frontend deploy | Local Electron | Vercel (web app) |
-| **Monthly cost** | **~$33-38** | **~$0-5** |
+| S3/DynamoDB compliance | Basic | HIPAA-compliant |
