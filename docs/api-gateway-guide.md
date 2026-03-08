@@ -18,7 +18,56 @@ This is the backend. It runs on AWS Lambda and handles all chat logic, crisis de
 | GET | `/categories` | — | List available help categories |
 | GET | `/stats` | — | Bot statistics |
 
-## How to Call the API
+## Quick Test with curl
+
+You can test every endpoint from your terminal. On Windows PowerShell, use `curl.exe` (not `curl`, which is a PowerShell alias). On Mac/Linux/WSL, use `curl`.
+
+### Health Check
+
+```bash
+curl https://7i51eh59p0.execute-api.us-east-1.amazonaws.com/dev/health
+```
+
+Expected response:
+```json
+{"status": "ok", "message": "CARE Bot API is running"}
+```
+
+### Chat (send a message)
+
+```bash
+curl -X POST https://7i51eh59p0.execute-api.us-east-1.amazonaws.com/dev/chat \
+  -H "Content-Type: application/json" \
+  -d '{"query": "What is trauma-informed care?", "session_id": "test-123"}'
+```
+
+### Categories
+
+```bash
+curl https://7i51eh59p0.execute-api.us-east-1.amazonaws.com/dev/categories
+```
+
+### Stats
+
+```bash
+curl https://7i51eh59p0.execute-api.us-east-1.amazonaws.com/dev/stats
+```
+
+### Clear Conversation
+
+```bash
+curl -X POST https://7i51eh59p0.execute-api.us-east-1.amazonaws.com/dev/clear \
+  -H "X-Session-ID: test-123"
+```
+
+> **Windows PowerShell note:** Replace `curl` with `curl.exe` and use escaped double quotes for JSON:
+> ```powershell
+> curl.exe -X POST https://7i51eh59p0.execute-api.us-east-1.amazonaws.com/dev/chat -H "Content-Type: application/json" -d "{\"query\": \"What is trauma-informed care?\", \"session_id\": \"test-123\"}"
+> ```
+
+---
+
+## How to Call the API (JavaScript)
 
 ### Basic Chat Request
 
