@@ -1,0 +1,20 @@
+[
+    {
+        "OutputKey":  "CareBotApiEndpoint",
+        "OutputValue":  "https://7i51eh59p0.execute-api.us-east-1.amazonaws.com/dev",
+        "Description":  "API Gateway endpoint for CARE Bot",
+        "ExportName":  "care-compass-stack-dev-ApiEndpoint"
+    },
+    {
+        "OutputKey":  "ConversationHistoryTableName",
+        "OutputValue":  "care-compass-conversations-dev",
+        "Description":  "DynamoDB table for conversation history",
+        "ExportName":  "care-compass-stack-dev-ConversationHistoryTable"
+    },
+    {
+        "OutputKey":  "CareBotFunctionArn",
+        "OutputValue":  "arn:aws:lambda:us-east-1:432732422396:function:care-compass-dev",
+        "Description":  "ARN of CARE Bot Lambda function",
+        "ExportName":  "care-compass-stack-dev-FunctionArn"
+    }
+]

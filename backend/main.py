@@ -2,32 +2,49 @@
 CARE Bot - Trauma-Informed RAG Chatbot
 Main application orchestrating the RAG pipeline
 """
+import os
 from typing import Dict, Any, Optional
 from src.embeddings.document_processor import DocumentProcessor
 from src.embeddings.vector_store import VectorStore
 from src.retrieval.retriever import Retriever
 from src.generation.prompt_templates import PromptTemplates
 from src.generation.llm_handler import LLMHandler
-from src.safety.crisis_detector import CrisisDetector
+from src.safety.crisis_detector import CrisisDetector, CRISIS_KEYWORDS
 from src.utils.logger import get_logger, log_interaction
 from config.settings import TOP_K
 
 logger = get_logger(__name__)
 
+# Crisis emphasis prepended to prompt when keywords trigger
+_CRISIS_EMPHASIS = """
+=== CRISIS PROTOCOL — SUICIDAL IDEATION DETECTED ===
+User has expressed suicidal thoughts or self-harm ideation.
+
+Your response MUST:
+1. Open with immediate, warm acknowledgment of their pain
+2. Provide these crisis resources early in your response:
+   - 988 Suicide & Crisis Lifeline — call or text 988 (free, 24/7)
+   - Crisis Text Line — text HOME to 741741
+3. Keep the tone calm, human, and not clinical
+4. Answer their question while maintaining safety focus
+5. End with a gentle invitation to keep talking
+
+DO NOT include these resources in normal (non-crisis) conversations.
+
+=====================================================
+
+"""
+
 
 class CAREBot:
     """Main CARE Bot application class"""
 
-    def __init__(self, top_k: int = TOP_K, warmup_crisis_detector: bool = False):
+    def __init__(self, top_k: int = TOP_K):
         """
         Initialize CARE Bot with all components.
 
         Args:
-            top_k:                   Number of documents to retrieve for context
-            warmup_crisis_detector:  If True, loads the crisis ML model at init
-                                     time rather than on the first message.
-                                     Eliminates first-request latency at the
-                                     cost of slower startup.
+            top_k: Number of documents to retrieve for context
         """
         logger.info("Initializing CARE Bot...")
 
@@ -40,11 +57,8 @@ class CAREBot:
 
         self.initialize_vector_store(force_rebuild=False)
 
-
-        # Single CrisisDetector instance — owned by CAREBot, not LLMHandler
+        # Keyword-only crisis detector (LLM handles implicit detection)
         self.crisis_detector = CrisisDetector()
-        if warmup_crisis_detector:
-            self.crisis_detector.warmup()
 
         logger.info("CARE Bot initialized successfully")
 
@@ -53,6 +67,7 @@ class CAREBot:
         user_query: str,
         scenario_category: Optional[str] = None,
         check_crisis: bool = True,
+        session_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Process user query through the RAG pipeline.
@@ -61,26 +76,26 @@ class CAREBot:
             user_query:        User's question or message
             scenario_category: Optional scenario category for document filtering
             check_crisis:      Whether to run crisis detection
+            session_id:        Session ID for DynamoDB conversation history
 
         Returns:
             Dictionary containing response and metadata
         """
         logger.info(f"Processing query: '{user_query[:50]}...'")
 
-        # ── Step 1: Crisis Detection ──────────────────────────────────────────
-        crisis_info = {"is_crisis": False, "keyword_triggered": False, "model_triggered": False}
+        # ── Step 1: Keyword Crisis Detection (fast, free) ──────────────────
+        keyword_crisis = {"is_crisis": False, "keyword_triggered": False, "model_triggered": False}
 
         if check_crisis:
-            crisis_info = self.crisis_detector.analyze(user_query)
+            keyword_crisis = self.crisis_detector.analyze(user_query)
 
-            if crisis_info["is_crisis"]:
+            if keyword_crisis["is_crisis"]:
                 logger.warning(
-                    f"Crisis detected — "
-                    f"keyword: {crisis_info['keyword_triggered']}, "
-                    f"model: {crisis_info['model_triggered']}"
+                    f"Crisis keyword detected — "
+                    f"keyword: {keyword_crisis['keyword_triggered']}"
                 )
 
-        # ── Step 2: Retrieval ──────────────────────────────────────────────────
+        # ── Step 2: Retrieval ──────────────────────────────────────────────
         retrieved_docs = []
         try:
             if scenario_category:
@@ -96,7 +111,7 @@ class CAREBot:
         except Exception as e:
             logger.error(f"Error in retrieval: {str(e)}")
 
-        # ── Step 3: Construct Prompt ──────────────────────────────────────────
+        # ── Step 3: Construct Prompt ──────────────────────────────────────
         if scenario_category:
             prompt = self.prompt_templates.get_scenario_specific_prompt(
                 user_query,
@@ -109,23 +124,30 @@ class CAREBot:
                 retrieved_docs
             )
 
-        # ── Step 4: Generate Response ───────────────────────────────────────────
-        # Pass is_crisis flag – LLMHandler injects crisis instructions if True
+        # ── Step 4: If keywords triggered, prepend crisis emphasis ────────
+        if keyword_crisis["is_crisis"]:
+            prompt = _CRISIS_EMPHASIS + prompt
+
+        # ── Step 5: Generate Response (LLM also assesses crisis via JSON) ─
         llm_response = self.llm_handler.generate_response(
             prompt,
             user_query=user_query,
-            is_crisis=crisis_info["is_crisis"],
+            session_id=session_id,
         )
         response_text = llm_response["text"]
 
+        # ── Step 6: Merge crisis signals ──────────────────────────────────
+        # Crisis if keywords OR LLM detected it
+        final_is_crisis = keyword_crisis["is_crisis"] or llm_response.get("is_crisis", False)
+
         logger.info(f"Generated response of length: {len(response_text)}")
 
-        # ── Step 5: Build result ─────────────────────────────────────────────
+        # ── Step 7: Build result ──────────────────────────────────────────
         result = {
             "response":           response_text,
-            "is_crisis":          crisis_info["is_crisis"],
-            "keyword_triggered":  crisis_info.get("keyword_triggered", False),
-            "model_triggered":    crisis_info.get("model_triggered", False),
+            "is_crisis":          final_is_crisis,
+            "keyword_triggered":  keyword_crisis.get("keyword_triggered", False),
+            "model_triggered":    llm_response.get("is_crisis", False),
             "num_docs_retrieved": len(retrieved_docs),
             "blocked":            llm_response.get("blocked", False),
             "retrieved_docs": [
@@ -152,10 +174,10 @@ class CAREBot:
 
         return result
 
-    def clear_conversation(self) -> None:
-        """Clear conversation history for a fresh start."""
-        self.llm_handler.clear_history()
-        logger.info("Conversation history cleared")
+    def clear_conversation(self, session_id: Optional[str] = None) -> None:
+        """Clear conversation history for a session."""
+        self.llm_handler.clear_history(session_id=session_id)
+        logger.info(f"Conversation history cleared for session {session_id or 'all'}")
 
     def initialize_vector_store(self, force_rebuild: bool = True) -> None:
         """
@@ -170,6 +192,11 @@ class CAREBot:
 
         if stats["document_count"] > 0 and not force_rebuild:
             logger.info(f"Vector store already has {stats['document_count']} documents")
+            return
+
+        # On Lambda, PDFs aren't available — vectorstore must come from S3
+        if os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+            logger.warning("Lambda environment: cannot rebuild vectorstore (no PDFs). Upload via S3.")
             return
 
         if force_rebuild:
@@ -191,9 +218,7 @@ class CAREBot:
             "vector_store":        vector_stats,
             "retriever_top_k":     self.retriever.top_k,
             "llm_model":           self.llm_handler.model_name,
-            "crisis_keywords":     len(self.crisis_detector.CRISIS_KEYWORDS
-                                       if hasattr(self.crisis_detector, 'CRISIS_KEYWORDS')
-                                       else []),
+            "crisis_keywords":     len(CRISIS_KEYWORDS),
             "conversation_history": history_stats,
         }
 
@@ -202,9 +227,9 @@ class CAREBot:
         return (
             "I apologize, but I'm having trouble responding right now.\n\n"
             "For immediate support, please reach out to:\n"
-            "• **National Sexual Assault Hotline**: 1-800-656-HOPE (4673)\n"
-            "• **Crisis Text Line**: Text \"HELLO\" to 741741\n"
-            "• **988 Suicide & Crisis Lifeline**: Call or text 988\n\n"
+            "- **National Sexual Assault Hotline**: 1-800-656-HOPE (4673)\n"
+            "- **Crisis Text Line**: Text \"HELLO\" to 741741\n"
+            "- **988 Suicide & Crisis Lifeline**: Call or text 988\n\n"
             "Your forensic nurse or advocate can also help connect you with "
             "local resources and support."
         )
@@ -216,8 +241,7 @@ def main():
     print("CARE Bot - Trauma-Informed Support Chatbot")
     print("=" * 80)
 
-    # Warmup crisis detector at startup so first request isn't slow
-    bot = CAREBot(warmup_crisis_detector=True)
+    bot = CAREBot()
 
     stats = bot.get_stats()
     print(f"\nBot Stats:")
@@ -290,7 +314,7 @@ def main():
             print(f"\nCARE Bot: {result['response']}")
 
             if result.get("is_crisis"):
-                print(f"\n[Crisis Detected — keyword: {result.get('keyword_triggered')}, model: {result.get('model_triggered')}]")
+                print(f"\n[Crisis Detected — keyword: {result.get('keyword_triggered')}, llm: {result.get('model_triggered')}]")
 
             if active_scenario:
                 print(f"\n[Category: {get_category_name(active_scenario)}]")
@@ -324,8 +348,8 @@ def show_menu():
     print("   (Not sure / just want to talk)")
     print("=" * 80)
     print("\nYou can:")
-    print("  • Type a number (1-6) to select a category")
-    print("  • Or just type your question directly (uses general help)")
+    print("  - Type a number (1-6) to select a category")
+    print("  - Or just type your question directly (uses general help)")
     print("=" * 80)
 
 

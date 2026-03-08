@@ -2,11 +2,12 @@
 FastAPI server for CARE Bot
 Connects the Python RAG backend to the Electron + React frontend
 """
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 from main import CAREBot
+from src.auth.supabase_auth import verify_supabase_token
 from src.utils.logger import get_logger
 from src.utils.backup_scheduler import BackupScheduler
 from config.settings import VECTORSTORE_DIR
@@ -86,7 +87,7 @@ async def startup():
     """Initialize CARE Bot and backup scheduler on server startup"""
     global bot, backup_scheduler
     logger.info("Starting CARE Bot API...")
-    bot = CAREBot(warmup_crisis_detector=False)
+    bot = CAREBot()
 
     
     # Initialize vector store if empty
@@ -125,6 +126,7 @@ async def shutdown():
 class ChatRequest(BaseModel):
     query: str
     scenario: Optional[str] = None
+    session_id: Optional[str] = None
 
 class ChatResponse(BaseModel):
     response: str
@@ -143,25 +145,49 @@ class StatsResponse(BaseModel):
 
 # --- API Endpoints ---
 
+def _resolve_session_id(request: ChatRequest, authorization: Optional[str] = None) -> Optional[str]:
+    """
+    Resolve session_id from JWT (authenticated) or request body (guest).
+    Priority: JWT user ID > request body session_id
+    """
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization[7:]
+        user_id = verify_supabase_token(token)
+        if user_id:
+            return user_id
+
+    return request.session_id
+
+
 @app.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
+async def chat(
+    request: ChatRequest,
+    authorization: Optional[str] = Header(None),
+):
     """
     Send a message to CARE Bot and get a response
-    
+
     - **query**: User's message
     - **scenario**: Optional category (immediate_followup, mental_health, practical_social, legal_advocacy, delayed_ambivalent)
+    - **session_id**: Optional session ID (for guest users)
+    - **Authorization**: Optional Bearer token (for authenticated users)
     """
     if not request.query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty")
-    
+
+    session_id = _resolve_session_id(request, authorization)
+
     try:
         result = bot.process_query(
             user_query=request.query,
-            scenario_category=request.scenario
+            scenario_category=request.scenario,
+            session_id=session_id,
         )
         
-        # Log to S3 (non-sensitive metadata only — no user query)
+        # Log to S3
         log_to_s3("/chat", "success", {
+            "query": request.query,
+            "response": result["response"],
             "scenario": request.scenario,
             "is_crisis": result["is_crisis"],
             "docs_retrieved": result["num_docs_retrieved"]
@@ -182,10 +208,18 @@ async def chat(request: ChatRequest):
 
 
 @app.post("/clear")
-async def clear_conversation():
-    """Clear conversation history for a fresh start"""
-    bot.clear_conversation()
-    log_to_s3("/clear", "success", {})
+async def clear_conversation(
+    authorization: Optional[str] = Header(None),
+    session_id: Optional[str] = Header(None, alias="X-Session-ID"),
+):
+    """Clear conversation history for a session"""
+    # Prefer JWT user ID over header session_id
+    if authorization and authorization.startswith("Bearer "):
+        user_id = verify_supabase_token(authorization[7:])
+        if user_id:
+            session_id = user_id
+    bot.clear_conversation(session_id=session_id)
+    log_to_s3("/clear", "success", {"session_id": session_id})
     return {"status": "cleared", "message": "Conversation history cleared"}
 
 

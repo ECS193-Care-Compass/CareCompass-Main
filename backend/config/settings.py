@@ -9,8 +9,9 @@ from dotenv import load_dotenv
 BACKEND_DIR = Path(__file__).parent.parent
 PROJECT_ROOT = BACKEND_DIR.parent
 
-# Load environment variables from project root
-load_dotenv(PROJECT_ROOT / ".env")
+# Load environment variables from project root (skip on Lambda — env vars come from Lambda config)
+if not os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+    load_dotenv(PROJECT_ROOT / ".env")
 
 # Data lives at project root
 BASE_DIR = PROJECT_ROOT
@@ -19,15 +20,16 @@ RAW_DATA_DIR = DATA_DIR / "raw"
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
 VECTORSTORE_DIR = PROCESSED_DATA_DIR / "vectorstore"
 
-# Create directories if they don't exist
-for directory in [DATA_DIR, RAW_DATA_DIR, PROCESSED_DATA_DIR, VECTORSTORE_DIR]:
-    directory.mkdir(parents=True, exist_ok=True)
+# Create directories if they don't exist (skip in Lambda — read-only filesystem)
+if not os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+    for directory in [DATA_DIR, RAW_DATA_DIR, PROCESSED_DATA_DIR, VECTORSTORE_DIR]:
+        directory.mkdir(parents=True, exist_ok=True)
 
 # API Configuration
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 # Embedding Configuration
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "gemini-embedding-001")
 CHUNK_SIZE = 500
 CHUNK_OVERLAP = 50
 
@@ -42,6 +44,16 @@ MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "4096"))
 
 # Safety Configuration
 ENABLE_CRISIS_DETECTION = os.getenv("ENABLE_CRISIS_DETECTION", "true").lower() == "true"
+
+# Supabase Configuration
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")
+
+# DynamoDB Configuration
+DYNAMODB_TABLE_NAME = os.getenv("DYNAMODB_TABLE_NAME", "care-compass-conversations")
+DYNAMODB_REGION = os.getenv("AWS_REGION", "us-east-1")
+DYNAMODB_TTL_MINUTES = int(os.getenv("DYNAMODB_TTL_MINUTES", "30"))
+MAX_HISTORY_TURNS = int(os.getenv("MAX_HISTORY_TURNS", "10"))
 
 # Document metadata fields to preserve
 METADATA_FIELDS = [

@@ -1,34 +1,38 @@
-# PowerShell deployment script for CARE Compass AWS Lambda + S3
+# PowerShell deployment script for CARE Compass AWS Lambda (Container Image)
+# Uses Docker + AWS CLI (no SAM CLI required)
 # Usage: .\deploy.ps1 -Environment dev -GoogleApiKey "xxx"
 
 param(
     [Parameter(Mandatory=$true)]
     [ValidateSet("dev", "prod")]
     [string]$Environment,
-    
+
     [Parameter(Mandatory=$true)]
     [string]$GoogleApiKey,
-    
+
     [Parameter(Mandatory=$false)]
     [string]$AWSProfile = "default",
-    
+
     [Parameter(Mandatory=$false)]
     [string]$AWSRegion = "us-east-1",
-    
+
     [Parameter(Mandatory=$false)]
     [int]$LambdaMemory = 1024,
-    
+
     [Parameter(Mandatory=$false)]
-    [int]$LambdaTimeout = 300
+    [int]$LambdaTimeout = 300,
+
+    [Parameter(Mandatory=$false)]
+    [string]$SupabaseJwtSecret = ""
 )
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "================================" -ForegroundColor Cyan
 Write-Host "CARE Compass AWS Deployment" -ForegroundColor Cyan
+Write-Host "(Container Image)" -ForegroundColor Cyan
 Write-Host "================================" -ForegroundColor Cyan
 
-# Get the script directory
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $awsDir = Split-Path -Parent $scriptDir
 $projectRoot = Split-Path -Parent $awsDir
@@ -36,76 +40,47 @@ $projectRoot = Split-Path -Parent $awsDir
 Write-Host "`nEnvironment: $Environment" -ForegroundColor Yellow
 Write-Host "AWS Profile: $AWSProfile" -ForegroundColor Yellow
 Write-Host "AWS Region: $AWSRegion" -ForegroundColor Yellow
-Write-Host "Lambda Memory: ${LambdaMemory}MB" -ForegroundColor Yellow
-Write-Host "Lambda Timeout: ${LambdaTimeout}s" -ForegroundColor Yellow
 
-# Validate AWS credentials
-Write-Host "`n[1/5] Validating AWS credentials..." -ForegroundColor Cyan
+# ==================== Step 1: Validate Prerequisites ====================
+Write-Host "`n[1/6] Validating prerequisites..." -ForegroundColor Cyan
 
+# Check Docker
+$dockerCheck = & docker --version 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "x Docker is not installed or not running" -ForegroundColor Red
+    exit 1
+}
+Write-Host "  Docker: $dockerCheck" -ForegroundColor Gray
+
+# Check AWS credentials
+$ErrorActionPreference = "Continue"
 $awsOutput = & aws sts get-caller-identity --profile $AWSProfile --region $AWSRegion 2>&1
+$ErrorActionPreference = "Stop"
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "✗ Error: AWS credentials not configured or invalid" -ForegroundColor Red
-    Write-Host "  Run: aws configure" -ForegroundColor Yellow
-    Write-Host "  Error Details: $awsOutput" -ForegroundColor Red
+    Write-Host "x AWS credentials not configured" -ForegroundColor Red
+    Write-Host "  Run: aws configure --profile $AWSProfile" -ForegroundColor Yellow
     exit 1
 }
 
-Write-Host "✓ AWS credentials valid" -ForegroundColor Green
+$sts = $awsOutput | ConvertFrom-Json
+$accountId = $sts.Account
+Write-Host "  AWS Account: $accountId" -ForegroundColor Gray
+Write-Host "OK - Prerequisites valid" -ForegroundColor Green
 
-# Parse the JSON output to extract account ID
-try {
-    $sts = $awsOutput | ConvertFrom-Json
-    $accountId = $sts.Account
-    if (-not $accountId) {
-        throw "Could not extract Account ID from AWS response"
-    }
-} catch {
-    Write-Host "✗ Error parsing AWS response: $_" -ForegroundColor Red
-    Write-Host "  Response was: $awsOutput" -ForegroundColor Red
-    exit 1
-}
+# ==================== Step 2: Prepare Source Code ====================
+Write-Host "`n[2/6] Preparing source code..." -ForegroundColor Cyan
 
-Write-Host "  Account ID: $accountId" -ForegroundColor Gray
-
-# Validate template
-Write-Host "`n[2/5] Validating CloudFormation template..." -ForegroundColor Cyan
-$templatePath = Join-Path $projectRoot "aws/infrastructure/template.yaml"
-
-$templateCheck = & aws cloudformation validate-template `
-    --template-body "file://$templatePath" `
-    --profile $AWSProfile `
-    --region $AWSRegion 2>&1
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "✗ Template validation failed" -ForegroundColor Red
-    Write-Host "  Error: $templateCheck" -ForegroundColor Red
-    exit 1
-}
-
-Write-Host "✓ Template is valid" -ForegroundColor Green
-
-# Build Lambda package
-Write-Host "`n[3/5] Building Lambda deployment package..." -ForegroundColor Cyan
 $lambdaDir = Join-Path $projectRoot "aws/lambda"
 $buildDir = Join-Path $lambdaDir "build"
 
 # Clean previous build
 if (Test-Path $buildDir) {
     Remove-Item $buildDir -Recurse -Force
-    Write-Host "  Cleaned previous build" -ForegroundColor Gray
 }
-
-# Create build directory
 New-Item -ItemType Directory -Path $buildDir -Force | Out-Null
 
-# Copy Lambda handler and modules
-Write-Host "  Copying Lambda handler..." -ForegroundColor Gray
-Copy-Item (Join-Path $lambdaDir "lambda_handler.py") (Join-Path $buildDir "lambda_handler.py")
-Copy-Item (Join-Path $lambdaDir "s3_manager.py") (Join-Path $buildDir "s3_manager.py")
-
-# Copy source code
-Write-Host "  Copying source code..." -ForegroundColor Gray
+# Copy source code into build dir (Docker will copy from here)
 $srcDir = Join-Path $projectRoot "backend/src"
 Copy-Item $srcDir (Join-Path $buildDir "src") -Recurse
 
@@ -115,97 +90,110 @@ Copy-Item $configDir (Join-Path $buildDir "config") -Recurse
 $mainFile = Join-Path $projectRoot "backend/main.py"
 Copy-Item $mainFile (Join-Path $buildDir "main.py")
 
-# Install dependencies
-Write-Host "  Installing Python dependencies..." -ForegroundColor Gray
-$reqFile = Join-Path $lambdaDir "requirements.txt"
-& pip install -r $reqFile -t $buildDir --quiet
+Write-Host "OK - Source code prepared" -ForegroundColor Green
+
+# ==================== Step 3: Build Docker Image ====================
+Write-Host "`n[3/6] Building Docker image..." -ForegroundColor Cyan
+
+$ecrRepo = "care-compass-$Environment"
+$imageTag = "latest"
+$imageName = "${ecrRepo}:${imageTag}"
+
+& docker build --platform linux/amd64 --provenance=false --no-cache -t $imageName -f (Join-Path $lambdaDir "Dockerfile") $lambdaDir
+
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "✗ Failed to install dependencies" -ForegroundColor Red
+    Write-Host "x Docker build failed" -ForegroundColor Red
     exit 1
 }
 
-Write-Host "✓ Lambda package built successfully" -ForegroundColor Green
+Write-Host "OK - Docker image built: $imageName" -ForegroundColor Green
 
-# Deploy with SAM
-Write-Host "`n[4/5] Deploying with AWS SAM..." -ForegroundColor Cyan
+# ==================== Step 4: Push to ECR ====================
+Write-Host "`n[4/6] Pushing image to ECR..." -ForegroundColor Cyan
+
+$ecrUri = "$accountId.dkr.ecr.$AWSRegion.amazonaws.com"
+$fullImageUri = "$ecrUri/${ecrRepo}:${imageTag}"
+
+# Create ECR repo if it doesn't exist
+$ErrorActionPreference = "Continue"
+& aws ecr describe-repositories --repository-names $ecrRepo --profile $AWSProfile --region $AWSRegion 2>&1 | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "  Creating ECR repository: $ecrRepo" -ForegroundColor Gray
+    & aws ecr create-repository --repository-name $ecrRepo --profile $AWSProfile --region $AWSRegion 2>&1 | Out-Null
+}
+$ErrorActionPreference = "Stop"
+
+# Login to ECR
+Write-Host "  Logging in to ECR..." -ForegroundColor Gray
+$loginPassword = & aws ecr get-login-password --profile $AWSProfile --region $AWSRegion
+$loginPassword | docker login --username AWS --password-stdin $ecrUri
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "x ECR login failed" -ForegroundColor Red
+    exit 1
+}
+
+# Tag and push
+Write-Host "  Pushing image to $fullImageUri ..." -ForegroundColor Gray
+& docker tag $imageName $fullImageUri
+& docker push $fullImageUri
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "x Docker push failed" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "OK - Image pushed to ECR" -ForegroundColor Green
+
+# ==================== Step 5: Deploy CloudFormation ====================
+Write-Host "`n[5/6] Deploying CloudFormation stack..." -ForegroundColor Cyan
 
 $stackName = "care-compass-stack-$Environment"
-$samCache = Join-Path $buildDir ".aws-sam"
-$s3Bucket = "care-compass-deploy-$accountId-$Environment"
+$templatePath = Join-Path $projectRoot "aws/infrastructure/template.yaml"
 
-# Create S3 bucket for SAM artifacts if it doesn't exist
-$s3BucketCheck = & aws s3 ls "s3://$s3Bucket" --profile $AWSProfile --region $AWSRegion 2>&1
+Write-Host "  Stack: $stackName" -ForegroundColor Gray
+Write-Host "  Image: $fullImageUri" -ForegroundColor Gray
+Write-Host "  (This may take several minutes)" -ForegroundColor Gray
 
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "  Creating S3 bucket for SAM artifacts..." -ForegroundColor Gray
-    & aws s3 mb "s3://$s3Bucket" --profile $AWSProfile --region $AWSRegion 2>&1 | Out-Null
-}
+$ErrorActionPreference = "Continue"
+$deployOutput = & aws cloudformation deploy --template-file $templatePath --stack-name $stackName --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --parameter-overrides "Environment=$Environment" "GoogleAPIKey=$GoogleApiKey" "LambdaMemory=$LambdaMemory" "LambdaTimeout=$LambdaTimeout" "SupabaseJwtSecret=$SupabaseJwtSecret" "ImageUri=$fullImageUri" --profile $AWSProfile --region $AWSRegion --no-fail-on-empty-changeset 2>&1
+$deployExitCode = $LASTEXITCODE
+$ErrorActionPreference = "Stop"
 
-# Run SAM deploy
-Write-Host "  Running SAM deploy..." -ForegroundColor Gray
-
-$samCommand = @(
-    "sam", "deploy",
-    "--template-file", $templatePath,
-    "--stack-name", $stackName,
-    "--s3-bucket", $s3Bucket,
-    "--capabilities", "CAPABILITY_IAM",
-    "--profile", $AWSProfile,
-    "--region", $AWSRegion,
-    "--parameter-overrides",
-    "Environment=$Environment",
-    "GoogleAPIKey=$GoogleApiKey",
-    "LambdaMemory=$LambdaMemory",
-    "LambdaTimeout=$LambdaTimeout",
-    "--no-fail-on-empty-changeset",
-    "--no-confirm-changeset"
-)
-
-# Debug: show what we're about to run
-Write-Host "  Stack Name: $stackName" -ForegroundColor Gray
-Write-Host "  Template: $templatePath" -ForegroundColor Gray
-Write-Host "  S3 Bucket: $s3Bucket" -ForegroundColor Gray
-
-& @samCommand
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "✗ SAM deployment failed" -ForegroundColor Red
+if ($deployExitCode -ne 0) {
+    Write-Host "x Deployment failed" -ForegroundColor Red
+    Write-Host "  Output: $deployOutput" -ForegroundColor Red
     exit 1
 }
 
-Write-Host "✓ SAM deployment successful" -ForegroundColor Green
+Write-Host "OK - Deployment successful" -ForegroundColor Green
 
-# Get stack outputs
-Write-Host "`n[5/5] Retrieving deployment outputs..." -ForegroundColor Cyan
+# ==================== Step 6: Retrieve Outputs ====================
+Write-Host "`n[6/6] Retrieving deployment outputs..." -ForegroundColor Cyan
+
 try {
-    $outputs = aws cloudformation describe-stacks `
-        --stack-name $stackName `
-        --profile $AWSProfile `
-        --region $AWSRegion `
-        --query 'Stacks[0].Outputs' | ConvertFrom-Json
-    
-    Write-Host "`n" + "="*50 -ForegroundColor Cyan
+    $outputs = aws cloudformation describe-stacks --stack-name $stackName --profile $AWSProfile --region $AWSRegion --query 'Stacks[0].Outputs' | ConvertFrom-Json
+
+    Write-Host "`n==================================================" -ForegroundColor Cyan
     Write-Host "DEPLOYMENT COMPLETE" -ForegroundColor Green
-    Write-Host "="*50 -ForegroundColor Cyan
-    
+    Write-Host "==================================================" -ForegroundColor Cyan
+
     foreach ($output in $outputs) {
         Write-Host "`n$($output.OutputKey):" -ForegroundColor Yellow
         Write-Host "  $($output.OutputValue)" -ForegroundColor White
     }
-    
-    # Save outputs to file
+
     $outputFile = Join-Path $scriptDir "deployment-outputs-$Environment.json"
     $outputs | ConvertTo-Json | Set-Content $outputFile
     Write-Host "`nOutputs saved to: $outputFile" -ForegroundColor Green
-    
+
 } catch {
-    Write-Host "✗ Error retrieving outputs: $_" -ForegroundColor Red
+    Write-Host "x Error retrieving outputs: $_" -ForegroundColor Red
 }
 
-Write-Host "`n" + "="*50 -ForegroundColor Cyan
+Write-Host "`n==================================================" -ForegroundColor Cyan
 Write-Host "Next Steps:" -ForegroundColor Cyan
-Write-Host "="*50 -ForegroundColor Cyan
-Write-Host "1. Update your Electron frontend with the API endpoint"
-Write-Host "2. Test the /health endpoint in your browser"
-Write-Host "3. Upload reference documents to S3 (optional)"
-Write-Host "4. Monitor CloudWatch logs for any issues"
+Write-Host "==================================================" -ForegroundColor Cyan
+Write-Host "1. Update your Electron frontend API_BASE_URL with the API endpoint above"
+Write-Host "2. Test: curl <api-endpoint>/health"
+Write-Host "3. Monitor CloudWatch logs for any issues"

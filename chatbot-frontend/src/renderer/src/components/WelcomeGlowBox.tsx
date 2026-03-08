@@ -1,14 +1,23 @@
 import { useEffect, useRef, useState } from "react"
 import { Input } from "./ui/input"
 import ReactMarkdown from "react-markdown"
-import { ArrowUp } from "lucide-react"
+import { ArrowUp, LogOut as LogOutIcon } from "lucide-react"
+import { sendChatMessage } from "../api"
 
 interface Message {
   role: "user" | "ai" | "error"
   text: string;
 }
 
-export const WelcomeGlowBox = () => {
+interface WelcomeGlowBoxProps {
+  sessionId: string
+  authToken?: string
+  isGuest: boolean
+  userEmail?: string
+  onSignOut?: () => void
+}
+
+export const WelcomeGlowBox = ({ sessionId, authToken, isGuest, userEmail, onSignOut }: WelcomeGlowBoxProps) => {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -23,18 +32,13 @@ export const WelcomeGlowBox = () => {
   const sendMessage = async (text?: string) => {
     const query = (text ?? input).trim();
     if (!query || isLoading) return;
-    
+
     setInput("");
     setMessages((prev) => [...prev, { role: "user", text: query }]);
     setIsLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8000/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }),
-      });
-      const data = await res.json();
+      const data = await sendChatMessage(query, undefined, sessionId, authToken);
       setMessages((prev) => [...prev, { role: "ai", text: data.response }]);
     } catch {
       setMessages((prev) => [...prev, { role: "error", text: "Connection error. Please try again." }]);
@@ -51,6 +55,22 @@ export const WelcomeGlowBox = () => {
 
   return (
     <div className="flex flex-col w-full max-w-5xl mx-5 sm:mx-9 md:mx-auto px-4 sm:px-6 md:px-12 py-2 transition-all duration-300 border border-teal-700/20 rounded-3xl bg-white/5 hover:bg-white/10 hover:border-teal-700/40 group min-h-fit">
+      {/* Session Info Bar */}
+      <div className="flex items-center justify-between px-4 pt-3 pb-1">
+        <span className="text-xs text-teal-800/50">
+          {isGuest ? 'Guest session' : userEmail}
+        </span>
+        {!isGuest && onSignOut && (
+          <button
+            onClick={onSignOut}
+            className="flex items-center gap-1 text-xs text-teal-800/50 hover:text-teal-900 transition-colors"
+          >
+            <LogOutIcon size={12} />
+            Sign out
+          </button>
+        )}
+      </div>
+
       {/* Message Area */}
       <div className="flex-1 w-full">
         <div ref={chatRef} className="h-[56vh] md:h-[500px] overflow-y-auto px-4 py-4">

@@ -11,6 +11,7 @@ export const DEBUG = import.meta.env.VITE_DEBUG === 'true';
 export interface ChatRequest {
   query: string;
   scenario?: string;
+  session_id?: string;
 }
 
 export interface ChatResponse {
@@ -64,6 +65,16 @@ function logDebug(message: string, data?: any) {
   }
 }
 
+function buildHeaders(authToken?: string): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (authToken) {
+    headers['Authorization'] = authToken;
+  }
+  return headers;
+}
+
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const error = await response.text();
@@ -79,24 +90,27 @@ async function handleResponse<T>(response: Response): Promise<T> {
  * Send a chat message to CARE Bot
  * @param query - User's message/question
  * @param scenario - Optional scenario category
+ * @param sessionId - Session ID (guest UUID or authenticated user ID)
+ * @param authToken - Optional Bearer token for authenticated users
  * @returns Chat response with bot reply and metadata
  */
 export async function sendChatMessage(
   query: string,
-  scenario?: string
+  scenario?: string,
+  sessionId?: string,
+  authToken?: string,
 ): Promise<ChatResponse> {
-  logDebug('sendChatMessage', { query, scenario });
+  logDebug('sendChatMessage', { query, scenario, sessionId });
 
   const request: ChatRequest = {
     query,
     scenario,
+    session_id: sessionId,
   };
 
   const response = await fetch(endpoints.chat, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: buildHeaders(authToken),
     body: JSON.stringify(request),
   });
 
@@ -106,14 +120,20 @@ export async function sendChatMessage(
 /**
  * Clear the conversation history
  */
-export async function clearConversation(): Promise<{ status: string; message: string }> {
-  logDebug('clearConversation');
+export async function clearConversation(
+  sessionId?: string,
+  authToken?: string,
+): Promise<{ status: string; message: string }> {
+  logDebug('clearConversation', { sessionId });
+
+  const headers = buildHeaders(authToken);
+  if (sessionId) {
+    headers['X-Session-ID'] = sessionId;
+  }
 
   const response = await fetch(endpoints.clear, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
   });
 
   return handleResponse(response);

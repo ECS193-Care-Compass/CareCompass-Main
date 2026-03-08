@@ -1,14 +1,52 @@
+import { useState } from 'react'
 import { WelcomeGlowBox } from './components/WelcomeGlowBox'
 import { QuickExitBar } from './components/QuickExitBar'
 import { ResourcesSection } from './components/ResourcesSection'
+import { AuthScreen } from './components/AuthScreen'
+import { useAuth } from './hooks/useAuth'
 
 export default function App() {
+  const auth = useAuth()
+  const [showAuth, setShowAuth] = useState(true)
+
+  // Show loading while checking for existing session
+  if (auth.isLoading) {
+    return (
+      <div className="w-full bg-[#a1d7d6] font-sans text-teal-950 flex items-center justify-center min-h-screen">
+        <p className="text-sm text-teal-800/60 animate-pulse">Loading...</p>
+      </div>
+    )
+  }
+
+  // Show auth screen if not authenticated and hasn't chosen guest
+  if (showAuth && !auth.user && auth.isGuest) {
+    return (
+      <div className="w-full bg-[#a1d7d6] font-sans text-teal-950">
+        <QuickExitBar />
+        <AuthScreen
+          onSignIn={auth.signInWithEmail}
+          onSignUp={auth.signUpWithEmail}
+          onGuest={() => {
+            auth.continueAsGuest()
+            setShowAuth(false)
+          }}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="w-full bg-[#a1d7d6] font-sans text-teal-950">
       <QuickExitBar />
-      
+
       <section className="pt-0 relative flex flex-col items-center justify-center min-h-screen w-full overflow-hidden">
-        <WelcomeGlowBox />
+        <WelcomeGlowBox
+          sessionId={auth.sessionId}
+          authToken={auth.getAuthHeader()}
+          isGuest={auth.isGuest}
+          userEmail={auth.user?.email}
+          onSignOut={auth.signOut}
+        />
       </section>
 
       {/* Scroll Indicator */}

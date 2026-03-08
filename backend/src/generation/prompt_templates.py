@@ -86,8 +86,14 @@ class PromptTemplates:
         5. Provide specific, actionable information when possible (e.g., types of follow-up care, what to expect)
         6. If discussing medical or mental health topics, remind them that this is general information and they should consult with healthcare providers
         7. Be concise but compassionate
+        8. Assess whether the user's message contains any crisis language, suicidal ideation, self-harm intent, or expressions of hopelessness/desperation — even if indirect or implied
 
-        RESPONSE:"""
+        You MUST respond with valid JSON in this exact format:
+        {{"response": "<your full response text here>", "is_crisis": <true or false>}}
+
+        Set "is_crisis" to true if the user's message contains ANY crisis signals (direct or indirect suicidal ideation, self-harm, expressions of wanting to die, hopelessness suggesting danger). When in doubt, err on the side of caution and set it to true.
+        Set "is_crisis" to false if the message does not contain crisis signals.
+        The "response" field must contain your complete, compassionate response text."""
         
         return prompt
     

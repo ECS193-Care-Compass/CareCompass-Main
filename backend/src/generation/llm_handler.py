@@ -2,14 +2,19 @@
 LLM handler for Google Gemini API
 Using google-genai library
 
-Crisis detection is handled upstream in CAREBot.process_query().
-LLMHandler receives the result via the is_crisis flag and injects
-the appropriate prompt instruction if needed.
+Crisis detection is handled via structured JSON output — every Gemini
+response includes an is_crisis field assessed by the model.
+Keyword-based crisis detection is done upstream in CAREBot.process_query().
+
+Conversation history is stored in DynamoDB (per session) with an
+in-memory fallback when DynamoDB is unavailable.
 """
+import json
 from google import genai
 from google.genai import types
-from typing import Dict, Any, List
-from config.settings import GOOGLE_API_KEY, MODEL_NAME, TEMPERATURE, MAX_OUTPUT_TOKENS
+from typing import Dict, Any, List, Optional
+from config.settings import GOOGLE_API_KEY, MODEL_NAME, TEMPERATURE, MAX_OUTPUT_TOKENS, MAX_HISTORY_TURNS
+from src.utils.dynamodb_history import DynamoDBHistory
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -25,15 +30,6 @@ class LLMHandler:
         temperature: float = TEMPERATURE,
         max_tokens: int = MAX_OUTPUT_TOKENS,
     ):
-        """
-        Initialize LLM handler.
-
-        Args:
-            api_key:     Google API key
-            model_name:  Gemini model name
-            temperature: Generation temperature (0.0-1.0)
-            max_tokens:  Maximum output tokens
-        """
         if not api_key:
             raise ValueError("GOOGLE_API_KEY must be set in environment variables")
 
@@ -45,17 +41,21 @@ class LLMHandler:
         # Create Gemini client
         self.client = genai.Client(api_key=self.api_key)
 
-        # Generation config
+        # Generation config with JSON output
         self.generation_config = types.GenerateContentConfig(
             temperature=self.temperature,
             top_p=0.95,
             top_k=40,
             max_output_tokens=self.max_tokens,
+            response_mime_type="application/json",
         )
 
-        # Conversation history
-        self.conversation_history: List[Dict] = []
-        self.max_history_turns = 10
+        # DynamoDB history (falls back to in-memory if unavailable)
+        self.db_history = DynamoDBHistory()
+
+        # In-memory fallback (used when DynamoDB is unavailable)
+        self._memory_history: Dict[str, List[Dict]] = {}
+        self.max_history_turns = MAX_HISTORY_TURNS
 
         logger.info(f"Initialized LLMHandler with model: {model_name}")
 
@@ -65,33 +65,25 @@ class LLMHandler:
         self,
         prompt: str,
         user_query: str = "",
-        is_crisis: bool = False,
+        session_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Generate a Gemini response.
-
-        Crisis detection is done upstream in CAREBot — this method just
-        receives the result and injects crisis instructions if needed.
+        Generate a Gemini response with structured JSON output.
 
         Args:
             prompt:     Full RAG/scenario prompt to send to Gemini.
             user_query: Raw user message, stored in conversation history.
-            is_crisis:  Whether crisis was detected upstream. If True,
-                        crisis protocol instructions are prepended to prompt.
+            session_id: Session ID for DynamoDB history. If None, no history is stored.
 
         Returns:
             {
                 "text":      str  - response text
                 "blocked":   bool - True if Gemini safety filters triggered
-                "is_crisis": bool - echoed back from input
+                "is_crisis": bool - whether Gemini detected crisis signals
                 "error":     str  - only present if an exception occurred
             }
         """
-        logger.info(f"Generating response — prompt length: {len(prompt)}, is_crisis: {is_crisis}")
-
-        # Inject crisis instructions into prompt if needed
-        if is_crisis:
-            prompt = self._inject_crisis_instruction(prompt)
+        logger.info(f"Generating response — prompt length: {len(prompt)}")
 
         try:
             response = self.client.models.generate_content(
@@ -105,43 +97,62 @@ class LLMHandler:
             if not response_text:
                 logger.warning("Response empty or blocked by Gemini safety filters")
                 return {
-                    "text":      self._get_fallback_response(is_crisis),
+                    "text":      self._get_fallback_response(),
                     "blocked":   True,
-                    "is_crisis": is_crisis,
+                    "is_crisis": False,
                 }
 
-            # Store turn in conversation history
-            if user_query:
-                self._add_to_history(user_query, response_text)
+            # Parse structured JSON response
+            parsed = self._parse_structured_response(response_text)
 
-            logger.info(f"Response generated — length: {len(response_text)}")
+            # Store turn in conversation history
+            if user_query and session_id:
+                self._save_turn(session_id, user_query, parsed["text"])
+
+            logger.info(f"Response generated — length: {len(parsed['text'])}, is_crisis: {parsed['is_crisis']}")
 
             return {
-                "text":      response_text,
+                "text":      parsed["text"],
                 "blocked":   False,
-                "is_crisis": is_crisis,
+                "is_crisis": parsed["is_crisis"],
             }
 
         except Exception as e:
             logger.error(f"Error generating response: {str(e)}")
             return {
-                "text":      self._get_fallback_response(is_crisis),
+                "text":      self._get_fallback_response(),
                 "blocked":   False,
-                "is_crisis": is_crisis,
+                "is_crisis": False,
                 "error":     str(e),
             }
 
-    def clear_history(self) -> None:
-        """Clear conversation history for a fresh start."""
-        self.conversation_history = []
-        logger.info("Conversation history cleared")
+    def clear_history(self, session_id: Optional[str] = None) -> None:
+        """Clear conversation history for a session."""
+        if session_id and self.db_history.available:
+            self.db_history.clear_session(session_id)
+        elif session_id:
+            self._memory_history.pop(session_id, None)
+        else:
+            self._memory_history.clear()
+        logger.info(f"Conversation history cleared for session {session_id or 'all'}")
 
-    def get_history_summary(self) -> Dict[str, Any]:
+    def get_history_summary(self, session_id: Optional[str] = None) -> Dict[str, Any]:
         """Return summary stats about current conversation history."""
+        if session_id and self.db_history.available:
+            return self.db_history.get_session_stats(session_id)
+
+        if session_id and session_id in self._memory_history:
+            msgs = len(self._memory_history[session_id])
+            return {
+                "total_turns": msgs // 2,
+                "max_turns":   self.max_history_turns,
+                "messages":    msgs,
+            }
+
         return {
-            "total_turns": len(self.conversation_history) // 2,
+            "total_turns": 0,
             "max_turns":   self.max_history_turns,
-            "messages":    len(self.conversation_history),
+            "messages":    0,
         }
 
     def test_connection(self) -> bool:
@@ -156,42 +167,44 @@ class LLMHandler:
             logger.error(f"Connection test failed: {str(e)}")
             return False
 
-    # ── Private: history ───────────────────────────────────────────────────────
-
-    def _add_to_history(self, user_query: str, response_text: str) -> None:
-        """Add a user/model turn to conversation history, trimming if needed."""
-        self.conversation_history.append({"role": "user",  "parts": [user_query]})
-        self.conversation_history.append({"role": "model", "parts": [response_text]})
-
-        # Keep only the last max_history_turns turns
-        max_messages = self.max_history_turns * 2
-        if len(self.conversation_history) > max_messages:
-            self.conversation_history = self.conversation_history[-max_messages:]
-
-    # ── Private: prompt injection ──────────────────────────────────────────────
+    # ── Private: response parsing ─────────────────────────────────────────────
 
     @staticmethod
-    def _inject_crisis_instruction(prompt: str) -> str:
-        """Prepend crisis protocol instructions to the prompt."""
-        instruction = """
-=== CRISIS PROTOCOL — SUICIDAL IDEATION DETECTED ===
-User has expressed suicidal thoughts or self-harm ideation.
+    def _parse_structured_response(response_text: str) -> Dict[str, Any]:
+        """
+        Parse the structured JSON response from Gemini.
 
-Your response MUST:
-1. Open with immediate, warm acknowledgment of their pain
-2. Provide these crisis resources early in your response:
-   • 988 Suicide & Crisis Lifeline — call or text 988 (free, 24/7)
-   • Crisis Text Line — text HOME to 741741
-3. Keep the tone calm, human, and not clinical
-4. Answer their question while maintaining safety focus
-5. End with a gentle invitation to keep talking
+        Expected format: {"response": "...", "is_crisis": true/false}
+        Falls back to raw text with is_crisis=False if parsing fails.
+        """
+        try:
+            data = json.loads(response_text)
+            text = data.get("response", response_text)
+            is_crisis = bool(data.get("is_crisis", False))
+            return {"text": text, "is_crisis": is_crisis}
+        except (json.JSONDecodeError, TypeError, AttributeError) as e:
+            logger.warning(f"Failed to parse structured response: {e}")
+            return {"text": response_text, "is_crisis": False}
 
-DO NOT include these resources in normal (non-crisis) conversations.
+    # ── Private: history ───────────────────────────────────────────────────────
 
-=====================================================
+    def _save_turn(self, session_id: str, user_query: str, response_text: str) -> None:
+        """Save a turn to DynamoDB or in-memory fallback."""
+        if self.db_history.available:
+            self.db_history.add_turn(session_id, user_query, response_text)
+        else:
+            history = self._memory_history.setdefault(session_id, [])
+            history.append({"role": "user",  "parts": [user_query]})
+            history.append({"role": "model", "parts": [response_text]})
+            max_messages = self.max_history_turns * 2
+            if len(history) > max_messages:
+                self._memory_history[session_id] = history[-max_messages:]
 
-"""
-        return instruction + prompt
+    def get_history(self, session_id: str) -> List[Dict]:
+        """Get conversation history for a session."""
+        if self.db_history.available:
+            return self.db_history.get_history(session_id)
+        return self._memory_history.get(session_id, [])
 
     # ── Private: fallback ──────────────────────────────────────────────────────
 

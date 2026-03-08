@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 
-Description: "CARE Compass - Trauma-Informed RAG Chatbot on AWS Lambda + S3"
+Description: "CARE Compass - Trauma-Informed RAG Chatbot on AWS Lambda (Container Image)"
 
 Parameters:
   Environment:
@@ -11,19 +11,19 @@ Parameters:
       - dev
       - prod
     Description: Deployment environment
-  
+
   GoogleAPIKey:
     Type: String
     NoEcho: true
     Description: Google Generative AI API Key
-  
+
   LambdaMemory:
     Type: Number
-    Default: 1024
+    Default: 512
     MinValue: 128
     MaxValue: 10240
     Description: Lambda function memory in MB
-  
+
   LambdaTimeout:
     Type: Number
     Default: 300
@@ -31,136 +31,44 @@ Parameters:
     MaxValue: 900
     Description: Lambda function timeout in seconds
 
+  SupabaseJwtSecret:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: Supabase JWT secret for authentication
+
+  ImageUri:
+    Type: String
+    Description: ECR image URI for Lambda function
+
 Globals:
   Function:
     Timeout: !Ref LambdaTimeout
     MemorySize: !Ref LambdaMemory
-    Runtime: python3.11
-    Environment:
-      Variables:
-        GOOGLE_API_KEY: !Ref GoogleAPIKey
-        S3_DOCUMENTS_BUCKET: !Ref DocumentsBucket
-        S3_PROCESSED_BUCKET: !Ref ProcessedBucket
-        S3_VECTORDB_BUCKET: !Ref VectorDBBucket
-        ENVIRONMENT: !Ref Environment
 
 Resources:
-  # ==================== S3 BUCKETS ====================
-  
-  RootLoggingBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub "care-compass-root-logs-${AWS::AccountId}-${Environment}"
-      VersioningConfiguration:
-        Status: Enabled
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
-      LoggingConfiguration:
-        DestinationBucketName: !Sub "care-compass-root-logs-${AWS::AccountId}-${Environment}"
-        LogFilePrefix: root-logs/
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-      Tags:
-        - Key: Environment
-          Value: !Ref Environment
-        - Key: Project
-          Value: CareCompass
-  
-  LoggingBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub "care-compass-logs-${AWS::AccountId}-${Environment}"
-      VersioningConfiguration:
-        Status: Enabled
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
-      LoggingConfiguration:
-        DestinationBucketName: !Ref RootLoggingBucket
-        LogFilePrefix: logging-bucket/
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-      Tags:
-        - Key: Environment
-          Value: !Ref Environment
-        - Key: Project
-          Value: CareCompass
-  
-  DocumentsBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub "care-compass-documents-${AWS::AccountId}-${Environment}"
-      VersioningConfiguration:
-        Status: Enabled
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
-      LoggingConfiguration:
-        DestinationBucketName: !Ref LoggingBucket
-        LogFilePrefix: documents/
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-      Tags:
-        - Key: Environment
-          Value: !Ref Environment
-        - Key: Project
-          Value: CareCompass
+  # ==================== DYNAMODB ====================
 
-  ProcessedBucket:
-    Type: AWS::S3::Bucket
+  ConversationHistoryTable:
+    Type: AWS::DynamoDB::Table
     Properties:
-      BucketName: !Sub "care-compass-processed-${AWS::AccountId}-${Environment}"
-      VersioningConfiguration:
-        Status: Enabled
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
-      LoggingConfiguration:
-        DestinationBucketName: !Ref LoggingBucket
-        LogFilePrefix: processed/
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-      Tags:
-        - Key: Environment
-          Value: !Ref Environment
-        - Key: Project
-          Value: CareCompass
-
-  VectorDBBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub "care-compass-vectordb-${AWS::AccountId}-${Environment}"
-      VersioningConfiguration:
-        Status: Enabled
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
-      LoggingConfiguration:
-        DestinationBucketName: !Ref LoggingBucket
-        LogFilePrefix: vectordb/
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
+      TableName: !Sub "care-compass-conversations-${Environment}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: session_id
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: N
+      KeySchema:
+        - AttributeName: session_id
+          KeyType: HASH
+        - AttributeName: timestamp
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -168,7 +76,7 @@ Resources:
           Value: CareCompass
 
   # ==================== IAM ROLE ====================
-  
+
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -196,28 +104,56 @@ Resources:
               - s3:DeleteObject
               - s3:ListBucket
             Resource:
-              - !GetAtt DocumentsBucket.Arn
-              - !Sub "${DocumentsBucket.Arn}/*"
-              - !GetAtt ProcessedBucket.Arn
-              - !Sub "${ProcessedBucket.Arn}/*"
-              - !GetAtt VectorDBBucket.Arn
-              - !Sub "${VectorDBBucket.Arn}/*"
+              - !Sub "arn:aws:s3:::care-compass-documents-${AWS::AccountId}-${Environment}"
+              - !Sub "arn:aws:s3:::care-compass-documents-${AWS::AccountId}-${Environment}/*"
+              - !Sub "arn:aws:s3:::care-compass-vectordb-${AWS::AccountId}-${Environment}"
+              - !Sub "arn:aws:s3:::care-compass-vectordb-${AWS::AccountId}-${Environment}/*"
+              - !Sub "arn:aws:s3:::care-compass-logs-${AWS::AccountId}-${Environment}"
+              - !Sub "arn:aws:s3:::care-compass-logs-${AWS::AccountId}-${Environment}/*"
+      Roles:
+        - !Ref LambdaExecutionRole
+
+  LambdaDynamoDBAccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: DynamoDBAccess
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+              - dynamodb:DeleteItem
+              - dynamodb:Query
+              - dynamodb:BatchWriteItem
+            Resource:
+              - !GetAtt ConversationHistoryTable.Arn
       Roles:
         - !Ref LambdaExecutionRole
 
   # ==================== LAMBDA FUNCTION ====================
-  
+
   CareBotFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "care-compass-${Environment}"
-      CodeUri: ../lambda/
-      Handler: lambda_handler.lambda_handler
+      PackageType: Image
+      ImageUri: !Ref ImageUri
       Role: !GetAtt LambdaExecutionRole.Arn
       EphemeralStorage:
-        Size: 10240  # 10 GB for ChromaDB and dependencies
+        Size: 1024
       Architectures:
         - x86_64
+      Environment:
+        Variables:
+          GOOGLE_API_KEY: !Ref GoogleAPIKey
+          S3_DOCUMENTS_BUCKET: !Sub "care-compass-documents-${AWS::AccountId}-${Environment}"
+          S3_VECTORDB_BUCKET: !Sub "care-compass-vectordb-${AWS::AccountId}-${Environment}"
+          S3_LOGS_BUCKET: !Sub "care-compass-logs-${AWS::AccountId}-${Environment}"
+          DYNAMODB_TABLE_NAME: !Ref ConversationHistoryTable
+          SUPABASE_JWT_SECRET: !Ref SupabaseJwtSecret
+          ENVIRONMENT: !Ref Environment
       Events:
         ChatApi:
           Type: Api
@@ -260,7 +196,7 @@ Resources:
         Project: CareCompass
 
   # ==================== API GATEWAY ====================
-  
+
   CareBotApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -268,49 +204,11 @@ Resources:
       StageName: !Ref Environment
       Cors:
         AllowMethods: "'GET,POST,OPTIONS'"
-        AllowHeaders: "'Content-Type,Authorization'"
+        AllowHeaders: "'Content-Type,Authorization,X-Session-ID'"
         AllowOrigin: "'*'"
       Tags:
         Environment: !Ref Environment
         Project: CareCompass
-
-  # ==================== CLOUDWATCH ALARMS ====================
-  
-  LambdaErrorAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: !Sub "care-compass-${Environment}-errors"
-      AlarmDescription: Alert when Lambda errors occur
-      MetricName: Errors
-      Namespace: AWS/Lambda
-      Statistic: Sum
-      Period: 300
-      EvaluationPeriods: 1
-      Threshold: 5
-      ComparisonOperator: GreaterThanThreshold
-      AlarmActions:
-        - !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:care-compass-alerts"
-      Dimensions:
-        - Name: FunctionName
-          Value: !Ref CareBotFunction
-
-  LambdaDurationAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: !Sub "care-compass-${Environment}-duration"
-      AlarmDescription: Alert when Lambda duration is high
-      MetricName: Duration
-      Namespace: AWS/Lambda
-      Statistic: Average
-      Period: 300
-      EvaluationPeriods: 2
-      Threshold: 10000  # 10 seconds in milliseconds
-      ComparisonOperator: GreaterThanThreshold
-      AlarmActions:
-        - !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:care-compass-alerts"
-      Dimensions:
-        - Name: FunctionName
-          Value: !Ref CareBotFunction
 
 Outputs:
   CareBotApiEndpoint:
@@ -325,20 +223,8 @@ Outputs:
     Export:
       Name: !Sub "${AWS::StackName}-FunctionArn"
 
-  DocumentsBucketName:
-    Description: S3 bucket for documents
-    Value: !Ref DocumentsBucket
+  ConversationHistoryTableName:
+    Description: DynamoDB table for conversation history
+    Value: !Ref ConversationHistoryTable
     Export:
-      Name: !Sub "${AWS::StackName}-DocumentsBucket"
-
-  ProcessedBucketName:
-    Description: S3 bucket for processed documents
-    Value: !Ref ProcessedBucket
-    Export:
-      Name: !Sub "${AWS::StackName}-ProcessedBucket"
-
-  VectorDBBucketName:
-    Description: S3 bucket for vector database backups
-    Value: !Ref VectorDBBucket
-    Export:
-      Name: !Sub "${AWS::StackName}-VectorDBBucket"
+      Name: !Sub "${AWS::StackName}-ConversationHistoryTable"
