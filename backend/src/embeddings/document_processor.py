@@ -118,14 +118,8 @@ class DocumentProcessor:
                 "filename": "cdc-hiv-lsht-treatment-brochure-partner-services-provider.pdf",
                 "document_type": "referral_resource",
                 "category": "hiv_partner_services",
-                "scenario_categories": "immediate_followup",
+                "scenario_categories": ["immediate_followup"],
             },
-            {
-                "filename": "cdc-lsht-testing-poster-an-hiv-test-is-right-for-you-provider.pdf",
-                "document_type": "patient_education",
-                "category": "hiv_testing",
-                "scenario_categories": "immediate_followup",
-            }
         ]
         
         all_chunks = []
@@ -145,8 +139,7 @@ class DocumentProcessor:
                 doc["metadata"]["category"] = doc_info["category"]
                 # Store primary scenario category for filtering
                 doc["metadata"]["scenario_category"] = doc_info["scenario_categories"][0]
-                # Store all applicable scenario categories for broader matching
-                doc["metadata"]["scenario_categories"] = doc_info["scenario_categories"]
+                doc["metadata"]["scenario_categories"] = ",".join(doc_info["scenario_categories"])
             
             # Chunk documents
             chunked = self.chunk_documents(documents)
@@ -155,6 +148,57 @@ class DocumentProcessor:
         
         return all_chunks
     
+    def process_survivor_resource_documents(self) -> List[Dict[str, Any]]:
+        """Process survivor rights, local resources, and forensic exam protocol documents"""
+        survivor_docs = [
+            {
+                "filename": "marsy-card-english.pdf",
+                "document_type": "patient_education",
+                "category": "victim_rights",
+                "scenario_categories": ["legal_advocacy"],
+            },
+            {
+                "filename": "Sac Sheriff SA TriFold Pamphlet Jan2023.pdf",
+                "document_type": "referral_resource",
+                "category": "local_resources",
+                "scenario_categories": ["practical_social", "legal_advocacy"],
+            },
+            {
+                "filename": "Survivors-Right-to-Time-Off-FAQs_English.pdf",
+                "document_type": "patient_education",
+                "category": "employment_rights",
+                "scenario_categories": ["legal_advocacy", "practical_social"],
+            },
+            {
+                "filename": "SAFE Protocol final 9.10.24.pdf",
+                "document_type": "clinical_protocol",
+                "category": "forensic_exam",
+                "scenario_categories": ["immediate_followup"],
+            },
+        ]
+
+        all_chunks = []
+        for doc_info in survivor_docs:
+            pdf_path = RAW_DATA_DIR / doc_info["filename"]
+
+            if not pdf_path.exists():
+                logger.warning(f"Survivor resource document not found: {pdf_path}")
+                continue
+
+            documents = self.extract_text_from_pdf(pdf_path)
+
+            for doc in documents:
+                doc["metadata"]["document_type"] = doc_info["document_type"]
+                doc["metadata"]["category"] = doc_info["category"]
+                doc["metadata"]["scenario_category"] = doc_info["scenario_categories"][0]
+                doc["metadata"]["scenario_categories"] = ",".join(doc_info["scenario_categories"])
+
+            chunked = self.chunk_documents(documents)
+            all_chunks.extend(chunked)
+            logger.info(f"Processed {doc_info['filename']}: {len(chunked)} chunks")
+
+        return all_chunks
+
     def process_all_documents(self) -> List[Dict[str, Any]]:
         """Process all documents in the raw data directory"""
         all_documents = []
@@ -168,7 +212,12 @@ class DocumentProcessor:
         logger.info("Processing HIV documents...")
         hiv_docs = self.process_hiv_documents()
         all_documents.extend(hiv_docs)
-        
+
+        # Process survivor resource documents
+        logger.info("Processing survivor resource documents...")
+        survivor_docs = self.process_survivor_resource_documents()
+        all_documents.extend(survivor_docs)
+
         logger.info(f"Total processed documents: {len(all_documents)}")
         return all_documents
 
