@@ -6,7 +6,7 @@ export const API_BASE_URL =
 
 export const DEBUG = import.meta.env.VITE_DEBUG === 'true';
 
-// ==================== INTERFACES ====================
+//  INTERFACES 
 
 export interface ChatRequest {
   query: string;
@@ -47,7 +47,7 @@ export interface StatsResponse {
   };
 }
 
-// ==================== ENDPOINTS ====================
+//  ENDPOINTS 
 
 const endpoints = {
   chat: `${API_BASE_URL}/chat`,
@@ -57,7 +57,7 @@ const endpoints = {
   categories: `${API_BASE_URL}/categories`,
 };
 
-// ==================== HELPER FUNCTIONS ====================
+//  HELPER FUNCTIONS 
 
 function logDebug(message: string, data?: any) {
   if (DEBUG) {
@@ -84,10 +84,10 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return response.json();
 }
 
-// ==================== API METHODS ====================
+//  API METHODS 
 
 /**
- * Send a chat message to CARE Bot
+ * Send message to CARE Bot
  * @param query - User's message/question
  * @param scenario - Optional scenario category
  * @param sessionId - Session ID (guest UUID or authenticated user ID)
@@ -117,9 +117,7 @@ export async function sendChatMessage(
   return handleResponse<ChatResponse>(response);
 }
 
-/**
- * Clear the conversation history
- */
+// Clear the conversation history
 export async function clearConversation(
   sessionId?: string,
   authToken?: string,
@@ -139,9 +137,7 @@ export async function clearConversation(
   return handleResponse(response);
 }
 
-/**
- * Get bot statistics
- */
+// Get bot statistics
 export async function getStats(): Promise<StatsResponse> {
   logDebug('getStats');
 
@@ -155,9 +151,7 @@ export async function getStats(): Promise<StatsResponse> {
   return handleResponse<StatsResponse>(response);
 }
 
-/**
- * Check if backend is healthy
- */
+// Check if backend is healthy
 export async function checkHealth(): Promise<{ status: string; message: string }> {
   logDebug('checkHealth');
 
@@ -171,9 +165,7 @@ export async function checkHealth(): Promise<{ status: string; message: string }
   return handleResponse(response);
 }
 
-/**
- * Get available scenario categories
- */
+// Get available scenario categories
 export async function getCategories(): Promise<CategoriesResponse> {
   logDebug('getCategories');
 
@@ -187,18 +179,14 @@ export async function getCategories(): Promise<CategoriesResponse> {
   return handleResponse<CategoriesResponse>(response);
 }
 
-// ==================== UTILITY FUNCTIONS ====================
+// UTILITY FUNCTIONS 
 
-/**
- * Get API base URL (useful for debugging)
- */
+// Get API base URL (useful for debugging)
 export function getApiBaseUrl(): string {
   return API_BASE_URL;
 }
 
-/**
- * Verify backend connectivity
- */
+// Verify backend connectivity
 export async function verifyBackendConnection(): Promise<boolean> {
   try {
     const health = await checkHealth();

@@ -4,6 +4,10 @@ Transform: AWS::Serverless-2016-10-31
 Description: "CARE Compass - Trauma-Informed RAG Chatbot on AWS Lambda (Container Image)"
 
 Parameters:
+  ImageUri:
+    Type: String
+    Description: ECR image URI for Lambda container
+
   Environment:
     Type: String
     Default: dev
@@ -37,9 +41,6 @@ Parameters:
     Default: ""
     Description: Supabase JWT secret for authentication
 
-  ImageUri:
-    Type: String
-    Description: ECR image URI for Lambda function
 
 Globals:
   Function:

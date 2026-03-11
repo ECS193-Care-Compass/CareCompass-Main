@@ -162,6 +162,7 @@ sam deploy \
         GoogleAPIKey="$GOOGLE_API_KEY" \
         LambdaMemory="$LAMBDA_MEMORY" \
         LambdaTimeout="$LAMBDA_TIMEOUT" \
+    --resolve-image-repos \
     --no-fail-on-empty-changeset \
     --no-confirm-changeset
 
