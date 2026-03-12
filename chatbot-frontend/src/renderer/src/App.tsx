@@ -1,16 +1,29 @@
+import { useState } from 'react'
 import { WelcomeGlowBox } from './components/WelcomeGlowBox'
 import { QuickExitBar } from './components/QuickExitBar'
 import { ResourcesSection } from './components/ResourcesSection'
+import { AuthScreen } from './components/AuthScreen'
 
 export default function App() {
+  const [showAuth, setShowAuth] = useState(true)
+
+  if (showAuth) {
+    return (
+      <div className="w-full bg-[#a1d7d6] font-sans text-teal-950">
+        <AuthScreen
+          onSignIn={async () => { setShowAuth(false); return { error: null }; }}
+          onSignUp={async () => { setShowAuth(false); return { error: null }; }}
+          onGuest={() => setShowAuth(false)}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="w-full bg-[#a1d7d6] font-sans text-teal-950">
       <QuickExitBar />
       <section className="pt-0 relative flex flex-col items-center justify-center min-h-screen w-full overflow-hidden">
-        <WelcomeGlowBox
-          sessionId={`guest-${crypto.randomUUID()}`}
-          isGuest={true}
-        />
+        <WelcomeGlowBox />
       </section>
       <div className="flex justify-center -mt-20 mb-7 pointer-events-none">
         <div className="flex flex-col items-center animate-pulse text-teal-900/60 max-w-5xl w-full px-6 pointer-events-none">

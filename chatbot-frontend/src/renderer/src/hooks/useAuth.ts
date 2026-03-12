@@ -29,7 +29,7 @@ export function useAuth() {
     user: null,
     session: null,
     sessionId: getOrCreateGuestId(),
-    isGuest: true,
+    isGuest: false,
     isLoading: true,
   })
 
