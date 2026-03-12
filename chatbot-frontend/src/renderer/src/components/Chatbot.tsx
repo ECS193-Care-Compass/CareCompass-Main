@@ -1,38 +1,43 @@
-import { useState, useRef, useEffect } from 'react';
-import { ArrowUp } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react'
+import type { JSX } from 'react'
+import { ArrowUp } from 'lucide-react'
 
 interface Message {
-  id: string;
-  text: string;
-  isUser: boolean;
-  timestamp: Date;
+  id: string
+  text: string
+  isUser: boolean
+  timestamp: Date
 }
 
 const GUIDED_PROMPTS = [
-  { label: "Mental Health Support", scenario: "mental_health" },
-  { label: "Practical Needs Help", scenario: "practical_social" },
-  { label: "Legal & Advocacy Help", scenario: "legal_advocacy" },
+  { label: 'Mental Health Support', scenario: 'mental_health' },
+  { label: 'Practical Needs Help', scenario: 'practical_social' },
+  { label: 'Legal & Advocacy Help', scenario: 'legal_advocacy' }
 ]
 
-const INITIAL_GREETING = "Hello, you're safe here. I'm here to listen and provide support. How can I help you today?";
+const INITIAL_GREETING =
+  "Hello, you're safe here. I'm here to listen and provide support. How can I help you today?"
 
-export function Chatbot() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState('');
-  const [hasStarted, setHasStarted] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
+export function Chatbot(): JSX.Element {
+  const [messages, setMessages] = useState<Message[]>([])
+  const [inputValue, setInputValue] = useState('')
+  const [hasStarted, setHasStarted] = useState(false)
+  const [isHovered, setIsHovered] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const chatContainerRef = useRef<HTMLDivElement>(null)
 
-  const scrollToBottom = () => {
+  // Suppress unused variable warning - keep for future quick exit feature
+  void messagesEndRef
+
+  const scrollToBottom = (): void => {
     if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
     }
-  };
+  }
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    scrollToBottom()
+  }, [messages])
 
   const generateResponse = (userMessage: string): string => {
     const lowerMessage = userMessage.toLowerCase();
@@ -152,7 +157,7 @@ export function Chatbot() {
               onClick={() => handleSendMessage(prompt.label)}
               className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full text-sm transition-colors"
             >
-              {prompt.label}
+              {prompt}
             </button>
           ))}
           

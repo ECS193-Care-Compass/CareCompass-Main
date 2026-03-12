@@ -1,4 +1,5 @@
 import type { Message } from '../types/message'
+import type { JSX } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowUp, Trash2 } from 'lucide-react'
@@ -22,13 +23,12 @@ export default function ChatUI({
   setInput,
   setScenario,
   handleSend,
-  handleClearChat,
-}: ChatUIProps) { 
-  
+  handleClearChat
+}: ChatUIProps): JSX.Element {
   return (
     <div className="flex flex-col h-[600px] bg-white/20 backdrop-blur-md rounded-3xl border border-white/30 shadow-xl overflow-hidden">
       
-      {/* Header with Scenarios & Clear Action */}
+      {/* 1. Header with Scenarios & Clear Action */}
       <div className="p-4 border-b border-white/20 bg-white/10 flex justify-between items-center">
         <div className="flex gap-2">
           {['mental_health', 'legal_advocacy', 'practical_social'].map((id) => (
@@ -48,7 +48,7 @@ export default function ChatUI({
         </button>
       </div>
 
-      {/*  Message Area */}
+      {/* 2. Message Area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
         <AnimatePresence initial={false}>
           {messages.map((msg, idx) => (
@@ -63,7 +63,7 @@ export default function ChatUI({
                   ? 'bg-teal-700 text-white rounded-tr-none' 
                   : 'bg-white text-cyan-950 rounded-tl-none shadow-sm'
               }`}>
-                <ReactMarkdown>{msg.content}</ReactMarkdown>
+                <ReactMarkdown>{msg.text}</ReactMarkdown>
               </div>
             </motion.div>
           ))}
@@ -71,7 +71,7 @@ export default function ChatUI({
         {isLoading && <div className="text-xs text-cyan-800 animate-pulse">Typing...</div>}
       </div>
 
-      {/*  Input Bar */}
+      {/* 3. Input Bar */}
       <div className="p-4 bg-white/10 border-t border-white/20">
         <div className="relative flex items-center">
           <input

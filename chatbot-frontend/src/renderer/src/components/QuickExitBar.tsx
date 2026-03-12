@@ -20,7 +20,7 @@ export function QuickExitBar() {
   return (
     <div className="fixed top-0 left-0 w-full z-50 bg-teal-700 border-b border-teal-600 px-8 py-3">
       <div className="flex items-center justify-between gap-4">
-        <p className="text-sm text-teal-50">
+        <p className="text-sm text-teal-50 hidden sm:block hidden sm:block">
           Press <kbd className="px-2 py-1 bg-teal-600 rounded text-xs mx-1 text-teal-50">ESC</kbd> or click the button to quickly leave this site
         </p>
         <button

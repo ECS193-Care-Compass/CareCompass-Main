@@ -46,7 +46,7 @@ const resources: Resource[] = [
 export function ResourcesSection() {
   return (
     <div className="max-w-5xl mx-auto">
-      <h2 className="text-3xl font-semibold text-teal-900 mb-8 text-center">
+      <h2 className="text-3xl font-semibold text-gray-900 mb-8 text-center">
         Local Support Resources (Sacramento Area)
       </h2>
       
@@ -54,29 +54,29 @@ export function ResourcesSection() {
         {resources.map((resource) => (
           <div 
             key={resource.name}
-            className="bg-white/80 border border-teal-200/50 rounded-lg p-6 hover:shadow-lg transition-shadow hover:bg-white/95"
+            className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
           >
-            <h3 className="text-lg font-semibold text-teal-900 mb-2">{resource.name}</h3>
-            <p className="text-teal-700/90 text-sm mb-4">{resource.description}</p>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">{resource.name}</h3>
+            <p className="text-gray-700 mb-4">{resource.description}</p>
             
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2">
               {resource.phone && (
-                <div className="flex items-center gap-2 text-teal-800">
-                  <Phone className="w-4 h-4 flex-shrink-0" />
-                  <a href={`tel:${resource.phone}`} className="hover:underline font-medium">
+                <div className="flex items-center gap-2 text-gray-800">
+                  <Phone className="w-4 h-4" />
+                  <a href={`tel:${resource.phone}`} className="hover:underline">
                     {resource.phone}
                   </a>
                 </div>
               )}
               
               {resource.website && (
-                <div className="flex items-center gap-2 text-teal-800">
-                  <ExternalLink className="w-4 h-4 flex-shrink-0" />
+                <div className="flex items-center gap-2 text-gray-800">
+                  <ExternalLink className="w-4 h-4" />
                   <a 
-                    href={`https://${resource.website}`}
+                    href={resource.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:underline font-medium"
+                    className="hover:underline"
                   >
                     Visit Website
                   </a>
@@ -84,9 +84,9 @@ export function ResourcesSection() {
               )}
               
               {resource.address && (
-                <div className="flex items-start gap-2 text-teal-700">
-                  <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <span className="text-xs">{resource.address}</span>
+                <div className="flex items-start gap-2 text-gray-700">
+                  <MapPin className="w-4 h-4 mt-1" />
+                  <span className="text-sm">{resource.address}</span>
                 </div>
               )}
             </div>
@@ -94,19 +94,19 @@ export function ResourcesSection() {
         ))}
       </div>
       
-      <div className="mt-12 p-6 bg-teal-50/50 rounded-lg border border-teal-200/50">
-        <h3 className="text-lg font-semibold text-teal-900 mb-3">
+      <div className="mt-12 p-6 bg-gray-50 rounded-lg border border-gray-200">
+        <h3 className="text-xl font-semibold text-gray-900 mb-3">
           National Resources
         </h3>
         <div className="space-y-2">
-          <div className="flex items-center gap-2 text-teal-800">
-            <Phone className="w-4 h-4 flex-shrink-0" />
+          <div className="flex items-center gap-2 text-gray-800">
+            <Phone className="w-4 h-4" />
             <span className="font-medium">National Domestic Violence Hotline:</span>
-            <a href="tel:1-800-799-7233" className="hover:underline font-bold">
+            <a href="tel:1-800-799-7233" className="hover:underline">
               1-800-799-7233
             </a>
           </div>
-          <p className="text-xs text-teal-700 ml-6">Available 24/7 in over 200 languages</p>
+          <p className="text-sm text-gray-600 ml-6">Available 24/7 in over 200 languages</p>
         </div>
       </div>
     </div>
