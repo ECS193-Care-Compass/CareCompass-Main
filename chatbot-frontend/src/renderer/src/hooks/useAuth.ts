@@ -49,8 +49,9 @@ export function useAuth() {
       }
     })
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Listen for auth changes (skip INITIAL_SESSION to avoid overriding auth screen)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'INITIAL_SESSION') return
       if (session?.user) {
         setState({
           user: session.user,
@@ -60,11 +61,12 @@ export function useAuth() {
           isLoading: false,
         })
       } else {
+        // User signed out — return to auth screen
         setState({
           user: null,
           session: null,
           sessionId: getOrCreateGuestId(),
-          isGuest: true,
+          isGuest: false,
           isLoading: false,
         })
       }

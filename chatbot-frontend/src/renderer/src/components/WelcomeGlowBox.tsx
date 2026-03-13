@@ -4,17 +4,22 @@ import { Input } from "./ui/input"
 import ReactMarkdown from "react-markdown"
 import { ArrowUp } from "lucide-react"
 import { motion, AnimatePresence } from 'framer-motion'
+import { sendChatMessage } from "../api"
+
+interface WelcomeGlowBoxProps {
+  sessionId: string
+  authToken?: string
+}
 
 interface Message {
   role: "user" | "ai" | "error"
   text: string;
 }
 
-export const WelcomeGlowBox = () => {
+export const WelcomeGlowBox = ({ sessionId, authToken }: WelcomeGlowBoxProps) => {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [language, _setLanguage] = useState<'en'|'es'>('en');
   const chatRef = useRef<HTMLDivElement | null>(null);
   const lastMsgRef = useRef<HTMLDivElement | null>(null);
 
@@ -41,12 +46,7 @@ export const WelcomeGlowBox = () => {
     setIsLoading(true);
     
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: text, lang: language }),
-      });
-      const data = await res.json();
+      const data = await sendChatMessage(text, undefined, sessionId, authToken);
       setMessages((prev) => [...prev, { role: "ai", text: data.response }]);
     } catch (e) {
       setMessages((prev) => [...prev, { role: "error", text: "Connection error." }]);

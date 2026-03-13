@@ -1,19 +1,27 @@
-import { useState } from 'react'
 import { WelcomeGlowBox } from './components/WelcomeGlowBox'
 import { QuickExitBar } from './components/QuickExitBar'
 import { ResourcesSection } from './components/ResourcesSection'
 import { AuthScreen } from './components/AuthScreen'
+import { useAuth } from './hooks/useAuth'
 
 export default function App() {
-  const [showAuth, setShowAuth] = useState(true)
+  const { user, sessionId, isGuest, isLoading, signInWithEmail, signUpWithEmail, signOut, continueAsGuest, getAuthHeader } = useAuth()
 
-  if (showAuth) {
+  if (isLoading) {
+    return (
+      <div className="w-full bg-[#a1d7d6] font-sans text-teal-950 flex items-center justify-center min-h-screen">
+        <p className="text-teal-800/70 animate-pulse">Loading...</p>
+      </div>
+    )
+  }
+
+  if (!user && !isGuest) {
     return (
       <div className="w-full bg-[#a1d7d6] font-sans text-teal-950">
         <AuthScreen
-          onSignIn={async () => { setShowAuth(false); return { error: null }; }}
-          onSignUp={async () => { setShowAuth(false); return { error: null }; }}
-          onGuest={() => setShowAuth(false)}
+          onSignIn={signInWithEmail}
+          onSignUp={signUpWithEmail}
+          onGuest={continueAsGuest}
         />
       </div>
     )
@@ -21,9 +29,9 @@ export default function App() {
 
   return (
     <div className="w-full bg-[#a1d7d6] font-sans text-teal-950">
-      <QuickExitBar />
+      <QuickExitBar onSignOut={signOut} showSignOut={!isGuest} />
       <section className="pt-0 relative flex flex-col items-center justify-center min-h-screen w-full overflow-hidden">
-        <WelcomeGlowBox />
+        <WelcomeGlowBox sessionId={sessionId} authToken={getAuthHeader()} />
       </section>
       <div className="flex justify-center -mt-20 mb-7 pointer-events-none">
         <div className="flex flex-col items-center animate-pulse text-teal-900/60 max-w-5xl w-full px-6 pointer-events-none">
