@@ -22,7 +22,7 @@ function createWindow(): void {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' http://localhost:8000 https://*.supabase.co"
+          "default-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' http://localhost:8000 https://*.supabase.co https://7i51eh59p0.execute-api.us-east-1.amazonaws.com"
         ]
       }
     })

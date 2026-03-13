@@ -7,10 +7,7 @@ export default function App() {
     <div className="w-full bg-[#a1d7d6] font-sans text-teal-950">
       <QuickExitBar />
       <section className="pt-0 relative flex flex-col items-center justify-center min-h-screen w-full overflow-hidden">
-        <WelcomeGlowBox
-          sessionId={`guest-${crypto.randomUUID()}`}
-          isGuest={true}
-        />
+        <WelcomeGlowBox />
       </section>
       <div className="flex justify-center -mt-20 mb-7 pointer-events-none">
         <div className="flex flex-col items-center animate-pulse text-teal-900/60 max-w-5xl w-full px-6 pointer-events-none">

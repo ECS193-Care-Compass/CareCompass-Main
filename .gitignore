@@ -104,3 +104,4 @@ chatbot-backend/
 
 #claude
 CLAUDE.md
+.env.production

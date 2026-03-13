@@ -157,7 +157,7 @@ export function Chatbot(): JSX.Element {
               onClick={() => handleSendMessage(prompt.label)}
               className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full text-sm transition-colors"
             >
-              {prompt}
+              {prompt.label}
             </button>
           ))}
           

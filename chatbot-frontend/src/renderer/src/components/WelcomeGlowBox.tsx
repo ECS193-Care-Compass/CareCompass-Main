@@ -1,9 +1,8 @@
-import React, { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
-import { ScrollArea } from "./ui/scroll-area"
 import ReactMarkdown from "react-markdown"
-import { ArrowUp, Mic, Globe } from "lucide-react"
+import { ArrowUp } from "lucide-react"
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface Message {
@@ -15,7 +14,7 @@ export const WelcomeGlowBox = () => {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [language, setLanguage] = useState<'en'|'es'>('en');
+  const [language, _setLanguage] = useState<'en'|'es'>('en');
   const chatRef = useRef<HTMLDivElement | null>(null);
   const lastMsgRef = useRef<HTMLDivElement | null>(null);
 
@@ -42,7 +41,7 @@ export const WelcomeGlowBox = () => {
     setIsLoading(true);
     
     try {
-      const res = await fetch("http://localhost:8000/chat", {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: text, lang: language }),
