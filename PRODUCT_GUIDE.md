@@ -84,45 +84,6 @@ CareCompass includes built-in **crisis detection** that identifies when a user m
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
----
-
-## Required API Keys & Environment Variables
-
-The following credentials are required to run CareCompass:
-
-### Backend (`.env` in project root)
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `GOOGLE_API_KEY` | Yes | Google Gemini API key — powers both the LLM (gemini-2.5-flash) and embedding model (gemini-embedding-001) |
-| `SUPABASE_JWT_SECRET` | Yes | Supabase JWT secret for verifying user authentication tokens |
-| `AWS_ACCESS_KEY_ID` | For AWS features | AWS credentials for DynamoDB, S3 logging, and Lambda deployment |
-| `AWS_SECRET_ACCESS_KEY` | For AWS features | AWS credentials (paired with access key above) |
-| `AWS_REGION` | For AWS features | AWS region (default: `us-east-1`) |
-
-### Frontend (`chatbot-frontend/.env`)
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `VITE_SUPABASE_URL` | Yes | Your Supabase project URL (e.g., `https://xxxxx.supabase.co`) |
-| `VITE_SUPABASE_ANON_KEY` | Yes | Supabase anonymous/public key for client-side auth |
-
-### Optional Tuning Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `MODEL_NAME` | `gemini-2.5-flash` | Gemini model for response generation |
-| `TEMPERATURE` | `0.7` | LLM response creativity (0.0–1.0) |
-| `TOP_K` | `3` | Number of documents retrieved per query |
-| `SIMILARITY_THRESHOLD` | `0.7` | Minimum similarity score for retrieved documents |
-| `MAX_OUTPUT_TOKENS` | `4096` | Maximum response length |
-| `ENABLE_CRISIS_DETECTION` | `true` | Toggle keyword-based crisis detection |
-| `DYNAMODB_TABLE_NAME` | `care-compass-conversations` | DynamoDB table for chat history |
-| `DYNAMODB_TTL_MINUTES` | `30` | How long conversation history is retained |
-| `MAX_HISTORY_TURNS` | `10` | Number of past turns included in context |
-
----
-
 ## Application Features
 
 ### Authentication
@@ -180,3 +141,69 @@ Scrolling below the chat reveals a **local resources directory** with contact in
 ### Sign Out
 
 Authenticated users can sign out via the button in the top bar (next to Quick Exit). Guest users do not see a sign-out button — their session simply expires.
+
+---
+
+## Types of Questions You Can Ask
+
+CareCompass answers questions based on its ingested knowledge base of trusted documents. Below are example questions organized by category, along with the source documents that back each topic.
+
+### Medical Follow-Up & Forensic Exam
+
+*Backed by: SAFE Protocol document, CDC HIV/Partner Services brochure*
+
+- "What happens during a forensic exam?"
+- "What is the SAFE protocol?"
+- "When should I get tested for STIs after an assault?"
+- "What is HIV prophylaxis and how does it work?"
+- "What are the timelines for HIV and STI testing?"
+- "Do I need to go back for follow-up appointments?"
+- "What is partner services and how does it work?"
+
+### Legal & Advocacy
+
+*Backed by: Marsy's Law victim rights card, Survivors' Right to Time Off FAQs, Sacramento Sheriff SA pamphlet*
+
+- "What are my rights as a survivor?"
+- "What is Marsy's Law and how does it protect me?"
+- "Can I take time off work because of what happened?"
+- "How much time off am I entitled to?"
+- "Do I have to report to the police?"
+- "How do I get a protection order?"
+- "What are my options if I'm not ready to report?"
+
+### Practical & Social Needs
+
+*Backed by: Sacramento Sheriff SA pamphlet, Survivors' Right to Time Off FAQs*
+
+- "What local resources are available in Sacramento?"
+- "Where can I find a support group?"
+- "What employment rights do I have as a survivor?"
+- "How do I access victim compensation?"
+
+### Mental Health & Emotional Support
+
+*Backed by: SAMHSA Trauma-Informed Care framework*
+
+- "I'm having trouble sleeping since it happened"
+- "I keep having flashbacks, is that normal?"
+- "I feel anxious all the time and don't know what to do"
+- "What does trauma-informed care mean?"
+- "What are some coping strategies?"
+
+### General Support
+
+- "I don't know where to start"
+- "I just need someone to talk to"
+- "What kind of help is available to me?"
+
+### What CareCompass Cannot Answer
+
+CareCompass is scoped to post-sexual assault care and support. It **cannot** help with:
+
+- Topics unrelated to survivor support (e.g., math homework, cooking recipes)
+- Specific legal advice (it provides general information, not legal counsel)
+- Medical diagnoses or treatment plans (it provides general guidance and referrals)
+- Real-time emergency response (if you are in immediate danger, call 911)
+
+If the bot detects a crisis, it will prioritize connecting you with emergency resources like the **988 Suicide & Crisis Lifeline** and **Crisis Text Line (text HOME to 741741)**.
