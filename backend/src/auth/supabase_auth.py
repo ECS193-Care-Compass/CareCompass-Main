@@ -7,16 +7,31 @@ Two modes:
 """
 
 import jwt
+from jwt import PyJWKClient
 from typing import Optional
-from config.settings import SUPABASE_JWT_SECRET
+from config.settings import SUPABASE_URL, SUPABASE_JWT_SECRET
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+# JWKS client for fetching public keys (caches keys automatically)
+_jwks_client: Optional[PyJWKClient] = None
+
+def _get_jwks_client() -> Optional[PyJWKClient]:
+    global _jwks_client
+    if _jwks_client is None and SUPABASE_URL:
+        jwks_url = f"{SUPABASE_URL.rstrip('/')}/auth/v1/.well-known/jwks.json"
+        _jwks_client = PyJWKClient(jwks_url)
+        logger.info(f"Initialized JWKS client: {jwks_url}")
+    return _jwks_client
 
 
 def verify_supabase_token(token: str) -> Optional[str]:
     """
     Verify a Supabase JWT and extract the user ID.
+
+    Tries JWKS-based verification first (supports ES256, RS256, etc.),
+    then falls back to the legacy HS256 shared secret.
 
     Args:
         token: Raw JWT string (without "Bearer " prefix)
@@ -24,24 +39,46 @@ def verify_supabase_token(token: str) -> Optional[str]:
     Returns:
         User ID (sub claim) if valid, None if invalid/expired.
     """
+    # Try JWKS verification first (ES256 / RS256)
+    jwks_client = _get_jwks_client()
+    if jwks_client:
+        try:
+            signing_key = jwks_client.get_signing_key_from_jwt(token)
+            payload = jwt.decode(
+                token,
+                signing_key.key,
+                algorithms=["ES256", "RS256"],
+                audience="authenticated",
+            )
+            user_id = payload.get("sub")
+            if user_id:
+                logger.info(f"Authenticated user (JWKS): {user_id[:12]}...")
+                return user_id
+            logger.warning("JWT valid but missing 'sub' claim")
+            return None
+        except jwt.ExpiredSignatureError:
+            logger.warning("JWT expired")
+            return None
+        except jwt.InvalidTokenError as e:
+            logger.debug(f"JWKS verification failed, trying legacy secret: {e}")
+        except Exception as e:
+            logger.debug(f"JWKS client error, trying legacy secret: {e}")
+
+    # Fallback to legacy HS256 shared secret
     if not SUPABASE_JWT_SECRET:
-        logger.warning("SUPABASE_JWT_SECRET not configured, skipping JWT verification")
+        logger.warning("No SUPABASE_URL or SUPABASE_JWT_SECRET configured, skipping JWT verification")
         return None
 
     try:
-        # Read the algorithm from the token header
-        header = jwt.get_unverified_header(token)
-        alg = header.get("alg", "HS256")
-
         payload = jwt.decode(
             token,
             SUPABASE_JWT_SECRET,
-            algorithms=[alg],
+            algorithms=["HS256"],
             audience="authenticated",
         )
         user_id = payload.get("sub")
         if user_id:
-            logger.info(f"Authenticated user: {user_id[:12]}...")
+            logger.info(f"Authenticated user (HS256): {user_id[:12]}...")
             return user_id
         logger.warning("JWT valid but missing 'sub' claim")
         return None

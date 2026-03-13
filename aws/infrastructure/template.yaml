@@ -39,7 +39,12 @@ Parameters:
     Type: String
     NoEcho: true
     Default: ""
-    Description: Supabase JWT secret for authentication
+    Description: Supabase JWT secret for authentication (legacy HS256 fallback)
+
+  SupabaseUrl:
+    Type: String
+    Default: ""
+    Description: Supabase project URL (e.g. https://xxx.supabase.co)
 
 
 Globals:
@@ -154,6 +159,7 @@ Resources:
           S3_LOGS_BUCKET: !Sub "care-compass-logs-${AWS::AccountId}-${Environment}"
           DYNAMODB_TABLE_NAME: !Ref ConversationHistoryTable
           SUPABASE_JWT_SECRET: !Ref SupabaseJwtSecret
+          SUPABASE_URL: !Ref SupabaseUrl
           ENVIRONMENT: !Ref Environment
       Events:
         ChatApi:

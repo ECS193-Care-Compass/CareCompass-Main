@@ -86,9 +86,12 @@ class LLMHandler:
         logger.info(f"Generating response — prompt length: {len(prompt)}")
 
         try:
+            # Build contents with conversation history
+            contents = self._build_contents(prompt, session_id)
+
             response = self.client.models.generate_content(
                 model=self.model_name,
-                contents=prompt,
+                contents=contents,
                 config=self.generation_config,
             )
 
@@ -187,6 +190,35 @@ class LLMHandler:
             return {"text": response_text, "is_crisis": False}
 
     # ── Private: history ───────────────────────────────────────────────────────
+
+    def _build_contents(self, prompt: str, session_id: Optional[str] = None) -> list:
+        """
+        Build the contents list for Gemini, including conversation history.
+
+        The prompt (system instructions + RAG context + current query) is the
+        last user message. Previous turns are prepended so Gemini has context.
+        """
+        if not session_id:
+            return [prompt]
+
+        history = self.get_history(session_id)
+        if not history:
+            return [prompt]
+
+        # Build multi-turn contents: history turns + current prompt
+        contents = []
+        for turn in history:
+            role = turn.get("role", "user")
+            parts = turn.get("parts", [])
+            text = parts[0] if parts else ""
+            if text:
+                contents.append(types.Content(role=role, parts=[types.Part.from_text(text=text)]))
+
+        # Current prompt as the final user message
+        contents.append(types.Content(role="user", parts=[types.Part.from_text(text=prompt)]))
+
+        logger.info(f"Built contents with {len(history)} history messages + current prompt")
+        return contents
 
     def _save_turn(self, session_id: str, user_query: str, response_text: str) -> None:
         """Save a turn to DynamoDB or in-memory fallback."""
