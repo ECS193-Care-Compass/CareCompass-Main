@@ -1,8 +1,24 @@
+import { useState } from 'react'
 import { WelcomeGlowBox } from './components/WelcomeGlowBox'
 import { QuickExitBar } from './components/QuickExitBar'
 import { ResourcesSection } from './components/ResourcesSection'
+import { AuthScreen } from './components/AuthScreen'
 
 export default function App() {
+  const [showAuth, setShowAuth] = useState(true)
+
+  if (showAuth) {
+    return (
+      <div className="w-full bg-[#a1d7d6] font-sans text-teal-950">
+        <AuthScreen
+          onSignIn={async () => { setShowAuth(false); return { error: null }; }}
+          onSignUp={async () => { setShowAuth(false); return { error: null }; }}
+          onGuest={() => setShowAuth(false)}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="w-full bg-[#a1d7d6] font-sans text-teal-950">
       <QuickExitBar />
