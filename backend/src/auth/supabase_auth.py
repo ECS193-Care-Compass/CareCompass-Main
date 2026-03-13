@@ -21,7 +21,7 @@ def _get_jwks_client() -> Optional[PyJWKClient]:
     global _jwks_client
     if _jwks_client is None and SUPABASE_URL:
         jwks_url = f"{SUPABASE_URL.rstrip('/')}/auth/v1/.well-known/jwks.json"
-        _jwks_client = PyJWKClient(jwks_url)
+        _jwks_client = PyJWKClient(jwks_url, timeout=10)
         logger.info(f"Initialized JWKS client: {jwks_url}")
     return _jwks_client
 
@@ -60,11 +60,15 @@ def verify_supabase_token(token: str) -> Optional[str]:
             logger.warning("JWT expired")
             return None
         except jwt.InvalidTokenError as e:
-            logger.debug(f"JWKS verification failed, trying legacy secret: {e}")
+            logger.warning(f"JWKS verification failed: {e}")
+            # Don't fall through to HS256 if JWKS client exists but verification failed
+            # This means the token is invalid, not that we should try a different method
+            return None
         except Exception as e:
-            logger.debug(f"JWKS client error, trying legacy secret: {e}")
+            logger.warning(f"JWKS client error: {e}")
+            return None
 
-    # Fallback to legacy HS256 shared secret
+    # Fallback to legacy HS256 shared secret (only if JWKS client not available)
     if not SUPABASE_JWT_SECRET:
         logger.warning("No SUPABASE_URL or SUPABASE_JWT_SECRET configured, skipping JWT verification")
         return None
@@ -87,5 +91,8 @@ def verify_supabase_token(token: str) -> Optional[str]:
         logger.warning("JWT expired")
         return None
     except jwt.InvalidTokenError as e:
-        logger.warning(f"Invalid JWT: {e}")
+        logger.warning(f"Invalid JWT (HS256): {e}")
+        return None
+    except Exception as e:
+        logger.warning(f"JWT verification error: {e}")
         return None
