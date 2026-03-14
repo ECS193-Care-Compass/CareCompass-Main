@@ -4,9 +4,9 @@
 
 - **Python 3.11+**
 - **Node.js 18+**
-- **Google Gemini API Key** — get one at [https://ai.google.dev](https://ai.google.dev)
-- **Supabase project** (free tier) — for authentication
-- **AWS account** — for DynamoDB (conversation history) and S3 (logs, vectorstore backup)
+- **Google Gemini API Key** 
+- **Supabase project** 
+- **AWS account** 
 
 ## 1. Setup Backend
 
@@ -30,6 +30,7 @@ Create a `.env` file in the **project root**:
 GOOGLE_API_KEY=your_gemini_api_key_here
 
 # Supabase (authentication)
+SUPABASE_URL=https://your-project-id.supabase.co
 SUPABASE_JWT_SECRET=your_supabase_jwt_secret
 
 # AWS (DynamoDB + S3)

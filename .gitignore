@@ -99,7 +99,6 @@ chroma_data/
 *.sqlite3
 *.bin
 
-# Abandoned Node.js backend
-chatbot-backend/
+
 
 
