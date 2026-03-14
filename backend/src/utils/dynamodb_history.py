@@ -51,7 +51,7 @@ class DynamoDBHistory:
     def available(self) -> bool:
         return self._available
 
-    # ── Read ──────────────────────────────────────────────────────────────────
+    # Read
 
     def get_history(self, session_id: str) -> List[Dict[str, str]]:
         """
@@ -89,8 +89,7 @@ class DynamoDBHistory:
             logger.error(f"Failed to read history: {e}")
             return []
 
-    # ── Write ─────────────────────────────────────────────────────────────────
-
+    # Write
     def add_turn(self, session_id: str, user_message: str, model_message: str) -> None:
         """Write a user+model turn to DynamoDB."""
         if not self._available:
@@ -121,7 +120,7 @@ class DynamoDBHistory:
         except Exception as e:
             logger.error(f"Failed to write history: {e}")
 
-    # ── Clear ─────────────────────────────────────────────────────────────────
+    # Clear
 
     def clear_session(self, session_id: str) -> None:
         """Delete all history for a session."""
@@ -148,7 +147,7 @@ class DynamoDBHistory:
         except Exception as e:
             logger.error(f"Failed to clear history: {e}")
 
-    # ── Stats ─────────────────────────────────────────────────────────────────
+    # Stats
 
     def get_session_stats(self, session_id: str) -> Dict[str, Any]:
         """Get message count for a session."""

@@ -187,29 +187,3 @@ class Retriever:
             "sources": sources
         }
 
-
-if __name__ == "__main__":
-    # Test retriever
-    print("Initializing vector store and retriever...")
-    vector_store = VectorStore()
-    retriever = Retriever(vector_store)
-    
-    # Test query
-    test_query = "What follow-up care do I need after a forensic exam?"
-    
-    print(f"\nTest Query: {test_query}")
-    
-    # Get stats
-    stats = retriever.get_retrieval_stats(test_query, k=3)
-    print(f"\nRetrieval Stats:")
-    print(f"  Retrieved: {stats['retrieved_count']} documents")
-    
-    if stats['retrieved_count'] > 0:
-        print(f"  Avg Distance: {stats['avg_distance']:.4f}")
-        print(f"  Sources: {', '.join(stats['sources'])}")
-        
-        # Get actual results
-        results = retriever.retrieve(test_query, k=3)
-        print(f"\nSample Result:")
-        print(f"  Text: {results[0]['text'][:200]}...")
-        print(f"  Distance: {results[0]['distance']:.4f}")

@@ -102,6 +102,4 @@ chroma_data/
 # Abandoned Node.js backend
 chatbot-backend/
 
-#claude
-CLAUDE.md
-.env.production
+

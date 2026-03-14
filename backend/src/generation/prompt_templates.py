@@ -97,7 +97,7 @@ class PromptTemplates:
         You MUST respond with valid JSON in this exact format:
         {{"response": "<your full response text here>", "is_crisis": <true or false>}}
 
-        Set "is_crisis" to true if the user's message contains ANY crisis signals (direct or indirect suicidal ideation, self-harm, expressions of wanting to die, hopelessness suggesting danger). When in doubt, err on the side of caution and set it to true.
+        Set "is_crisis" to true if the user's message contains ANY crisis signals (direct or indirect suicidal ideation, self-harm, expressions of wanting to die, hopelessness suggesting danger). When in doubt, set it to true.
         Set "is_crisis" to false if the message does not contain crisis signals.
         The "response" field must contain your complete, compassionate response text."""
         
@@ -208,64 +208,3 @@ class PromptTemplates:
 
         RESPONSE:"""
 
-
-if __name__ == "__main__":
-    # Test that it actually uses the config
-    templates = PromptTemplates()
-    
-    print("="*80)
-    print("TESTING: System Prompt Generation from Config")
-    print("="*80)
-    
-    prompt = templates.get_system_prompt()
-    
-    # Verify it contains items from config
-    print("\nChecking if config values appear in prompt...\n")
-    
-    for key, principle in TRAUMA_INFORMED_PRINCIPLES.items():
-        if principle['name'] in prompt:
-            print(f"✓ Found: {principle['name']}")
-        else:
-            print(f"✗ Missing: {principle['name']}")
-    
-    for key in FOUR_RS.keys():
-        if key.upper() in prompt:
-            print(f"✓ Found: {key.upper()}")
-        else:
-            print(f"✗ Missing: {key.upper()}")
-    
-    print("\n" + "="*80)
-    print("TESTING: Scenario-Specific Prompt")
-    print("="*80)
-    
-    sample_docs = [{"text": "Sample context", "metadata": {"source": "test", "page": 1}}]
-    scenario_prompt = templates.get_scenario_specific_prompt(
-        "Test query", 
-        sample_docs, 
-        "mental_health"
-    )
-    
-    # Check if scenario name from config appears
-    scenario_name = SCENARIO_CATEGORIES["mental_health"]["name"]
-    if scenario_name in scenario_prompt:
-        print(f"\n✓ Scenario name from config found: '{scenario_name}'")
-    else:
-        print(f"\n✗ Scenario name from config NOT found: '{scenario_name}'")
-    
-    print("\n" + "="*80)
-    print("TESTING: Referral Prompt")
-    print("="*80)
-    
-    referral_prompt = templates.get_referral_prompt(
-        "I need mental health help",
-        sample_docs,
-        "mental_health"
-    )
-    
-    # Check if referral types from config appear
-    referral_types = REFERRAL_CATEGORIES["mental_health"]
-    found_types = [t for t in referral_types if t in referral_prompt]
-    
-    print(f"\n✓ Found {len(found_types)}/{len(referral_types)} referral types from config:")
-    for rt in found_types:
-        print(f"  - {rt}")

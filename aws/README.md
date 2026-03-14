@@ -98,21 +98,11 @@ Point your Electron frontend to the API Gateway URL from the deploy output.
 | `care-compass-vectordb-*-dev` | Vectorstore backup (.zip) |
 | `care-compass-logs-*-dev` | API interaction audit logs |
 
-## Lambda Configuration
+## API Gateway URL
 
-- **Runtime:** Python 3.11
-- **Memory:** 512 MB (no ML models, API-only)
-- **Timeout:** 300s
-- **Ephemeral Storage:** 1 GB (for ChromaDB in /tmp)
-- **Cold start:** Downloads vectorstore.zip from S3, extracts to /tmp
-- **Warm invocations:** Reuses /tmp (no re-download)
-
-## Updating the Vectorstore
-
-1. Add/modify PDFs in `data/raw/`
-2. Delete `data/processed/vectorstore/` and restart the backend locally (rebuilds via Gemini API)
-3. Re-upload: `python aws/scripts/upload_vectorstore.py`
-4. Lambda picks up the new vectorstore on next cold start (or redeploy to force)
+```
+https://7i51eh59p0.execute-api.us-east-1.amazonaws.com/dev
+```
 
 ## API Endpoints
 
@@ -124,31 +114,68 @@ Point your Electron frontend to the API Gateway URL from the deploy output.
 | `/stats` | GET | None | Bot statistics |
 | `/categories` | GET | None | Available scenarios |
 
-## Useful Commands
+### Request & Response
 
-```powershell
-# View Lambda logs
-aws logs tail /aws/lambda/care-compass-dev --follow --profile carecompass
+**Chat request:**
+```json
+{"query": "What is trauma-informed care?", "session_id": "guest-abc123", "scenario": "mental_health"}
+```
+- `query` (required): User's message
+- `session_id` (optional): Unique session ID for guest users. Not needed if using a JWT.
+- `scenario` (optional): One of `immediate_followup`, `mental_health`, `practical_social`, `legal_advocacy`, `delayed_ambivalent`
 
-# Check stack status
-aws cloudformation describe-stacks --stack-name care-compass-stack-dev --profile carecompass --query 'Stacks[0].StackStatus'
-
-# List S3 interaction logs
-aws s3 ls s3://care-compass-logs-432732422396-dev/interactions/ --recursive --profile carecompass
-
-# Test health endpoint
-curl https://<api-id>.execute-api.us-east-1.amazonaws.com/dev/health
+**Chat response:**
+```json
+{
+  "response": "Bot's reply text here...",
+  "is_crisis": false,
+  "num_docs_retrieved": 3,
+  "scenario": null,
+  "blocked": false
+}
 ```
 
-## Troubleshooting
+| Field | Type | Description |
+|-------|------|-------------|
+| `response` | string | The bot's reply |
+| `is_crisis` | boolean | `true` if crisis language was detected (keywords or AI assessment) |
+| `num_docs_retrieved` | number | How many reference documents were used for context |
+| `scenario` | string/null | The scenario category used, if any |
+| `blocked` | boolean | `true` if the response was blocked by safety filters |
 
-| Problem | Fix |
-|---------|-----|
-| Lambda package too large (>250MB) | deploy.ps1 removes bloat automatically; check if new deps were added |
-| Stack creation fails (bucket exists) | S3 buckets are pre-existing; template references them by name, doesn't create them |
-| Lambda timeout | Increase in template.yaml `LambdaTimeout` or deploy with `-LambdaTimeout 900` |
-| Vectorstore empty on Lambda | Run `python aws/scripts/upload_vectorstore.py` to upload to S3 |
-| Permission denied | IAM user needs CloudFormation, Lambda, S3, DynamoDB, IAM, API Gateway permissions |
+### Testing with curl
+
+```bash
+# Health check
+curl https://7i51eh59p0.execute-api.us-east-1.amazonaws.com/dev/health
+
+# Chat
+curl -X POST https://7i51eh59p0.execute-api.us-east-1.amazonaws.com/dev/chat \
+  -H "Content-Type: application/json" \
+  -d '{"query": "What is trauma-informed care?", "session_id": "test-123"}'
+
+# Chat with auth
+curl -X POST https://7i51eh59p0.execute-api.us-east-1.amazonaws.com/dev/chat \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <jwt_token>" \
+  -d '{"query": "How do I find a counselor?"}'
+
+# Clear conversation
+curl -X POST https://7i51eh59p0.execute-api.us-east-1.amazonaws.com/dev/clear \
+  -H "X-Session-ID: test-123"
+
+# Categories
+curl https://7i51eh59p0.execute-api.us-east-1.amazonaws.com/dev/categories
+```
+
+> **Windows PowerShell:** Use `curl.exe` instead of `curl` and escape double quotes in JSON.
+
+
+### Session Management
+
+- **Guest users**: Generate a unique `session_id` on the frontend (e.g., `guest-<uuid>`) and send it with every request. History auto-expires after 30 minutes.
+- **Authenticated users**: Send a Supabase JWT in the `Authorization` header. The backend extracts the user ID as the session ID.
+
 
 ## Cleanup
 
