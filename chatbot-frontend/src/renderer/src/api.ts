@@ -181,7 +181,7 @@ export async function getCategories(): Promise<CategoriesResponse> {
 
 // UTILITY FUNCTIONS 
 
-// Get API base URL (useful for debugging)
+// Get API base URL - mostly used for debugging
 export function getApiBaseUrl(): string {
   return API_BASE_URL;
 }

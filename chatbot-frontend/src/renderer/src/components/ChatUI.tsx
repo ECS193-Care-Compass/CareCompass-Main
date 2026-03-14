@@ -28,7 +28,7 @@ export default function ChatUI({
   return (
     <div className="flex flex-col h-[600px] bg-white/20 backdrop-blur-md rounded-3xl border border-white/30 shadow-xl overflow-hidden">
       
-      {/* 1. Header with Scenarios & Clear Action */}
+      {/* Header with Scenarios & Clear Action */}
       <div className="p-4 border-b border-white/20 bg-white/10 flex justify-between items-center">
         <div className="flex gap-2">
           {['mental_health', 'legal_advocacy', 'practical_social'].map((id) => (
@@ -48,7 +48,7 @@ export default function ChatUI({
         </button>
       </div>
 
-      {/* 2. Message Area */}
+      {/* Message Area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
         <AnimatePresence initial={false}>
           {messages.map((msg, idx) => (
@@ -71,7 +71,7 @@ export default function ChatUI({
         {isLoading && <div className="text-xs text-cyan-800 animate-pulse">Typing...</div>}
       </div>
 
-      {/* 3. Input Bar */}
+      {/* Input Bar */}
       <div className="p-4 bg-white/10 border-t border-white/20">
         <div className="relative flex items-center">
           <input

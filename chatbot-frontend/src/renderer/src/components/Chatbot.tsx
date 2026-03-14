@@ -74,7 +74,7 @@ export function Chatbot(): JSX.Element {
     
     if (!textToSend) return;
 
-    // Mark as started but don't add greeting to messages
+    // Mark as started without adding greeting to messages
     if (!hasStarted) {
       setHasStarted(true);
     }

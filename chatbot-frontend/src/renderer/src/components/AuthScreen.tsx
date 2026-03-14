@@ -35,7 +35,7 @@ export function AuthScreen({ onSignIn, onSignUp, onGuest }: AuthScreenProps) {
     setIsLoading(false)
   }
 
-  // Welcome screen — choose sign in or guest
+  // Welcome screen, choose sign in or guest
   if (mode === 'welcome') {
     return (
       <div className="flex items-center justify-center min-h-screen w-full">
