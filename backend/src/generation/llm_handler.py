@@ -2,7 +2,7 @@
 LLM handler for Google Gemini API
 Using google-genai library
 
-Crisis detection is handled via structured JSON output — every Gemini
+Crisis detection is handled via structured JSON output, every Gemini
 response includes an is_crisis field assessed by the model.
 Keyword-based crisis detection is done upstream in CAREBot.process_query().
 
@@ -59,7 +59,7 @@ class LLMHandler:
 
         logger.info(f"Initialized LLMHandler with model: {model_name}")
 
-    # ── Public API ─────────────────────────────────────────────────────────────
+    # Public API
 
     def generate_response(
         self,
@@ -170,7 +170,7 @@ class LLMHandler:
             logger.error(f"Connection test failed: {str(e)}")
             return False
 
-    # ── Private: response parsing ─────────────────────────────────────────────
+    # Private: response parsing
 
     @staticmethod
     def _parse_structured_response(response_text: str) -> Dict[str, Any]:
@@ -189,7 +189,7 @@ class LLMHandler:
             logger.warning(f"Failed to parse structured response: {e}")
             return {"text": response_text, "is_crisis": False}
 
-    # ── Private: history ───────────────────────────────────────────────────────
+    # Private: history 
 
     def _build_contents(self, prompt: str, session_id: Optional[str] = None) -> list:
         """
@@ -238,7 +238,7 @@ class LLMHandler:
             return self.db_history.get_history(session_id)
         return self._memory_history.get(session_id, [])
 
-    # ── Private: fallback ──────────────────────────────────────────────────────
+    # Private: fallback
 
     @staticmethod
     def _get_fallback_response(is_crisis: bool = False) -> str:

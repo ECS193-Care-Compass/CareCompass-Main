@@ -10,7 +10,7 @@ from datetime import datetime
 # Determine if running in Lambda
 _IS_LAMBDA = bool(os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
 
-# Create logs directory (skip on Lambda — read-only filesystem)
+# Create logs directory (skip on Lambda, read-only filesystem)
 if _IS_LAMBDA:
     LOGS_DIR = Path("/tmp/logs")
 else:
@@ -36,7 +36,7 @@ def get_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     if not logger.handlers:
         logger.setLevel(level)
 
-        # Console handler (always — Lambda captures stdout to CloudWatch)
+        # Console handler 
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(level)
         console_formatter = logging.Formatter(
@@ -46,7 +46,7 @@ def get_logger(name: str, level: int = logging.INFO) -> logging.Logger:
         console_handler.setFormatter(console_formatter)
         logger.addHandler(console_handler)
 
-        # File handler (skip on Lambda — CloudWatch handles logging)
+        # File handler (skip on Lambda, CloudWatch handles logging)
         if not _IS_LAMBDA:
             log_file = LOGS_DIR / f"care_bot_{datetime.now().strftime('%Y%m%d')}.log"
             file_handler = logging.FileHandler(log_file)
@@ -81,12 +81,3 @@ def log_interaction(logger: logging.Logger,
     )
 
 
-if __name__ == "__main__":
-    logger = get_logger(__name__)
-
-    logger.debug("This is a debug message")
-    logger.info("This is an info message")
-    logger.warning("This is a warning message")
-    logger.error("This is an error message")
-
-    print(f"\nLog file created at: {LOGS_DIR}")

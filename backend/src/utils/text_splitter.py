@@ -1,12 +1,11 @@
 """
-Simple text splitter - replaces langchain.text_splitter.RecursiveCharacterTextSplitter
-No dependencies needed!
+Simple text splitter
 """
 from typing import List
 
 
 class SimpleTextSplitter:
-    """Simple text splitter with overlap (replaces Langchain)"""
+    """Simple text splitter with overlap"""
     
     def __init__(self, chunk_size: int = 500, chunk_overlap: int = 50):
         """

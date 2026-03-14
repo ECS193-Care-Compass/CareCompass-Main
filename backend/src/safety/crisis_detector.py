@@ -15,7 +15,7 @@ from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-# ── Keywords ──────────────────────────────────────────────────────────────────
+# Keywords
 # Explicit direct statements that catch clear self-harm/suicidal language.
 CRISIS_KEYWORDS = [
     # Direct suicidal statements
@@ -48,17 +48,27 @@ CRISIS_KEYWORDS = [
     "jump off",
 ]
 
+# Pre-compile a single regex with word boundaries for all keywords.
+# Produces: \b(?:kill myself|end my life|...)\b
+#   \b          = word boundary (prevents partial matches like "planetary" matching "plan")
+#   (?:...|...) = non-capturing OR group — matches any keyword
+#   re.escape   = escapes special regex chars (e.g. "-" in "self-harm")
+#   IGNORECASE  = case-insensitive matching
+_CRISIS_PATTERN = re.compile(
+    r"\b(?:" + "|".join(re.escape(kw) for kw in CRISIS_KEYWORDS) + r")\b",
+    re.IGNORECASE,
+)
+
 
 def _keyword_match(text: str) -> bool:
     """
     Check if the text contains any crisis keywords.
-    Case-insensitive, matches whole phrases.
+    Case-insensitive, matches whole phrases with word boundaries.
     """
-    text_lower = text.lower()
-    for keyword in CRISIS_KEYWORDS:
-        if keyword in text_lower:
-            logger.info(f"Crisis keyword matched: '{keyword}'")
-            return True
+    match = _CRISIS_PATTERN.search(text)
+    if match:
+        logger.info(f"Crisis keyword matched: '{match.group()}'")
+        return True
     return False
 
 

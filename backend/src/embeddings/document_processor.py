@@ -22,8 +22,6 @@ class DocumentProcessor:
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap
         )
-        # Removed: SentenceTransformer model load
-        # ChromaDB's embedding function in VectorStore handles embeddings automatically
         logger.info(f"Initialized DocumentProcessor with chunk_size={chunk_size}, overlap={chunk_overlap}")
     
     def extract_text_from_pdf(self, pdf_path: Path) -> List[Dict[str, Any]]:
@@ -221,31 +219,3 @@ class DocumentProcessor:
         logger.info(f"Total processed documents: {len(all_documents)}")
         return all_documents
 
-
-if __name__ == "__main__":
-    # Test document processing
-    processor = DocumentProcessor()
-    
-    print("=" * 60)
-    print("Testing SAMHSA document processing...")
-    print("=" * 60)
-    docs = processor.process_samhsa_document()
-    print(f"Processed {len(docs)} chunks")
-    if docs:
-        print(f"Sample chunk text: {docs[0]['text'][:200]}...")
-        print(f"Sample metadata: {docs[0]['metadata']}")
-    
-    print("\n" + "=" * 60)
-    print("Testing HIV document processing...")
-    print("=" * 60)
-    hiv_docs = processor.process_hiv_documents()
-    print(f"Processed {len(hiv_docs)} chunks")
-    if hiv_docs:
-        print(f"Sample chunk text: {hiv_docs[0]['text'][:200]}...")
-        print(f"Sample metadata: {hiv_docs[0]['metadata']}")
-    
-    print("\n" + "=" * 60)
-    print("Testing full pipeline...")
-    print("=" * 60)
-    all_docs = processor.process_all_documents()
-    print(f"Total chunks across all documents: {len(all_docs)}")

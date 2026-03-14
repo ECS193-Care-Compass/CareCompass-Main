@@ -19,7 +19,7 @@ logger = get_logger(__name__)
 
 
 class GeminiEmbeddingFunction(EmbeddingFunction):
-    """ChromaDB-compatible embedding function using Google Gemini API"""
+    """ChromaDB embedding function using Google Gemini API"""
 
     def __init__(self, api_key: str = GOOGLE_API_KEY, model_name: str = EMBEDDING_MODEL):
         if not api_key:
@@ -270,13 +270,3 @@ class VectorStore:
             raise
 
 
-if __name__ == "__main__":
-    # Test vector store
-    vector_store = VectorStore()
-
-    # Get stats
-    stats = vector_store.get_collection_stats()
-    print(f"\nVector Store Stats:")
-    print(f"Collection: {stats['collection_name']}")
-    print(f"Documents: {stats['document_count']}")
-    print(f"Embedding Model: {stats['embedding_model']}")

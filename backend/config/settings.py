@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 BACKEND_DIR = Path(__file__).parent.parent
 PROJECT_ROOT = BACKEND_DIR.parent
 
-# Load environment variables from project root (skip on Lambda — env vars come from Lambda config)
+# Load environment variables from project root 
 if not os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
     load_dotenv(PROJECT_ROOT / ".env")
 
@@ -20,7 +20,7 @@ RAW_DATA_DIR = DATA_DIR / "raw"
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
 VECTORSTORE_DIR = PROCESSED_DATA_DIR / "vectorstore"
 
-# Create directories if they don't exist (skip in Lambda — read-only filesystem)
+# Create directories if they don't exist 
 if not os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
     for directory in [DATA_DIR, RAW_DATA_DIR, PROCESSED_DATA_DIR, VECTORSTORE_DIR]:
         directory.mkdir(parents=True, exist_ok=True)
