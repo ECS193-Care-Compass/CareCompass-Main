@@ -41,7 +41,7 @@ Write-Host "`nEnvironment: $Environment" -ForegroundColor Yellow
 Write-Host "AWS Profile: $AWSProfile" -ForegroundColor Yellow
 Write-Host "AWS Region: $AWSRegion" -ForegroundColor Yellow
 
-# ==================== Step 1: Validate Prerequisites ====================
+# Validate Prerequisites 
 Write-Host "`n[1/6] Validating prerequisites..." -ForegroundColor Cyan
 
 # Check Docker
