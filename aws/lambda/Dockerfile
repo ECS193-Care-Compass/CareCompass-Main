@@ -8,7 +8,7 @@ RUN pip install pysqlite3-binary --quiet
 
 # Copy requirements and install dependencies (pre-built wheels only)
 COPY requirements.txt ${LAMBDA_TASK_ROOT}/
-RUN pip install -r ${LAMBDA_TASK_ROOT}/requirements.txt --only-binary=:all: --quiet
+RUN pip install -r ${LAMBDA_TASK_ROOT}/requirements.txt --quiet
 
 # Patch: make chromadb use pysqlite3 instead of built-in sqlite3
 RUN CHROMA_INIT=$(python -c "import importlib.util; print(importlib.util.find_spec('chromadb').origin)") && \

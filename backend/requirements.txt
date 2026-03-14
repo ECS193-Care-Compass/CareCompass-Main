@@ -3,7 +3,7 @@ google-genai>=1.0.0
 chromadb==0.4.15
 pypdf==3.17.4
 requests>=2.31.0
-PyJWT>=2.8.0
+PyJWT[crypto]>=2.8.0
 fastapi
 uvicorn
 boto3==1.26.137

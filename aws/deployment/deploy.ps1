@@ -23,7 +23,10 @@ param(
     [int]$LambdaTimeout = 300,
 
     [Parameter(Mandatory=$false)]
-    [string]$SupabaseJwtSecret = ""
+    [string]$SupabaseJwtSecret = "",
+
+    [Parameter(Mandatory=$false)]
+    [string]$SupabaseUrl = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -156,7 +159,7 @@ Write-Host "  Image: $fullImageUri" -ForegroundColor Gray
 Write-Host "  (This may take several minutes)" -ForegroundColor Gray
 
 $ErrorActionPreference = "Continue"
-$deployOutput = & aws cloudformation deploy --template-file $templatePath --stack-name $stackName --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --parameter-overrides "Environment=$Environment" "GoogleAPIKey=$GoogleApiKey" "LambdaMemory=$LambdaMemory" "LambdaTimeout=$LambdaTimeout" "SupabaseJwtSecret=$SupabaseJwtSecret" "ImageUri=$fullImageUri" --profile $AWSProfile --region $AWSRegion --no-fail-on-empty-changeset 2>&1
+$deployOutput = & aws cloudformation deploy --template-file $templatePath --stack-name $stackName --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --parameter-overrides "Environment=$Environment" "GoogleAPIKey=$GoogleApiKey" "LambdaMemory=$LambdaMemory" "LambdaTimeout=$LambdaTimeout" "SupabaseJwtSecret=$SupabaseJwtSecret" "SupabaseUrl=$SupabaseUrl" "ImageUri=$fullImageUri" --profile $AWSProfile --region $AWSRegion --no-fail-on-empty-changeset 2>&1
 $deployExitCode = $LASTEXITCODE
 $ErrorActionPreference = "Stop"
 
