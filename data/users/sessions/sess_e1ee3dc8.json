@@ -1,0 +1,18 @@
+{
+  "session_id": "sess_e1ee3dc8",
+  "user_id": "test_user_b7c36ecb",
+  "created_at": "2026-03-05T00:15:12.911476+00:00",
+  "message_count": 2,
+  "messages": [
+    {
+      "role": "user",
+      "content": "Hello, testing new user creation",
+      "timestamp": "2026-03-05T00:15:13.178128+00:00"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello. Welcome. I'm CARE Bot, and I'm here to offer support in connecting you with medical, social, and mental health follow-up care.\n\nIt takes courage to reach out, and I want you to know that you are in control every step of the way. Your safety, choices, and well-being are my top priorities.\n\nI can help provide clear, accessible information on things like:\n*   Understanding medical follow-up after a forensic exam\n*   Information about STI/HIV testing and timelines\n*   Connecting with mental health resources\n*   Finding social support and community resources\n\nPlease take your time. There's no rush, and you decide what information you'd like to explore, and when. Just let me know how I can best support you.",
+      "timestamp": "2026-03-05T00:15:23.443455+00:00"
+    }
+  ]
+}

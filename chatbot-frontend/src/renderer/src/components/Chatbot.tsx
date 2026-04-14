@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import type { JSX } from 'react'
-import { ArrowUp } from 'lucide-react'
+import { ArrowUp, Mic } from 'lucide-react'
+import { sendChatMessage, sendVoiceChat } from '../api'
 
 interface Message {
   id: string
@@ -23,8 +24,13 @@ export function Chatbot(): JSX.Element {
   const [inputValue, setInputValue] = useState('')
   const [hasStarted, setHasStarted] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
 
   // Suppress unused variable warning - keep for future quick exit feature
   void messagesEndRef
@@ -39,45 +45,90 @@ export function Chatbot(): JSX.Element {
     scrollToBottom()
   }, [messages])
 
-  const generateResponse = (userMessage: string): string => {
-    const lowerMessage = userMessage.toLowerCase();
-    
-    if (lowerMessage.includes('immediate') || lowerMessage.includes('emergency') || lowerMessage.includes('danger')) {
-      return "Your safety is the priority. If you're in immediate danger, please call 911. The National Domestic Violence Hotline is available 24/7 at 1-800-799-7233. You can also text START to 88788. Would you like information about local safe spaces?";
-    }
-    
-    if (lowerMessage.includes('options') || lowerMessage.includes('learn')) {
-      return "I understand you want to explore your options. You have rights and there are resources available to you, including legal advocacy, safe housing, counseling services, and support groups. What area would you like to know more about?";
-    }
-    
-    if (lowerMessage.includes('not sure') || lowerMessage.includes('start')) {
-      return "It's completely okay to feel unsure. Taking this first step takes courage. We can talk about whatever feels right for you - your feelings, your situation, or practical next steps. There's no pressure. What feels most important to you right now?";
-    }
-    
-    if (lowerMessage.includes('safe') || lowerMessage.includes('housing') || lowerMessage.includes('shelter')) {
-      return "There are safe housing options available in Sacramento. WEAVE offers emergency shelter (916-920-2952) and My Sister's House provides transitional housing. These spaces are confidential and secure. Would you like more details about accessing these services?";
-    }
-    
-    if (lowerMessage.includes('legal') || lowerMessage.includes('lawyer') || lowerMessage.includes('restraining order')) {
-      return "Legal advocacy is available to help you understand your rights and options. This can include restraining orders, custody support, and immigration assistance. Organizations like Legal Services of Northern California offer free legal help. Would you like contact information?";
-    }
-    
-    if (lowerMessage.includes('thank') || lowerMessage.includes('appreciate')) {
-      return "You're welcome. Remember, you deserve support and safety. I'm here whenever you need to talk. You're taking important steps.";
-    }
-    
-    return "I'm here to support you. Your feelings are valid, and you don't have to go through this alone. Would you like to talk more about your situation, or would information about specific resources be more helpful right now?";
-  };
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
 
-  const handleSendMessage = (messageText?: string) => {
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data)
+      }
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        await handleVoiceSubmit(audioBlob)
+        stream.getTracks().forEach(track => track.stop())
+      }
+
+      mediaRecorder.start()
+      setIsRecording(true)
+      if (!hasStarted) setHasStarted(true)
+    } catch (err) {
+      console.error('Error accessing microphone:', err)
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        text: "I couldn't access your microphone. Please check your browser permissions.",
+        isUser: false,
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, errorMessage])
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+    }
+  }
+
+  const handleVoiceSubmit = async (blob: Blob) => {
+    setIsProcessing(true)
+    try {
+      const data = await sendVoiceChat(blob)
+      
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        text: data.user_transcript,
+        isUser: true,
+        timestamp: new Date()
+      }
+
+      const botMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: data.bot_response,
+        isUser: false,
+        timestamp: new Date()
+      }
+
+      setMessages(prev => [...prev, userMessage, botMessage])
+
+      // Play the response audio
+      if (data.audio_base64) {
+        const audio = new Audio(`data:audio/mpeg;base64,${data.audio_base64}`)
+        audio.play().catch(e => console.error("Audio playback failed:", e))
+      }
+    } catch (err) {
+      console.error('Voice chat failed:', err)
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        text: "Sorry, I had trouble processing your voice message. Please try again or type your message.",
+        isUser: false,
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const handleSendMessage = async (messageText?: string, scenario?: string) => {
     const textToSend = messageText || inputValue.trim();
-    
-    if (!textToSend) return;
+    if (!textToSend || isProcessing) return;
 
-    // Mark as started without adding greeting to messages
-    if (!hasStarted) {
-      setHasStarted(true);
-    }
+    if (!hasStarted) setHasStarted(true);
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -88,17 +139,28 @@ export function Chatbot(): JSX.Element {
 
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
+    setIsProcessing(true);
 
-    setTimeout(() => {
-      const response = generateResponse(textToSend);
+    try {
+      const data = await sendChatMessage(textToSend, scenario);
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: response,
+        text: data.response,
         isUser: false,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, botMessage]);
-    }, 800);
+    } catch (err) {
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: "I'm having trouble connecting to my brain right now. Please make sure the backend server is running.",
+        isUser: false,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -154,8 +216,9 @@ export function Chatbot(): JSX.Element {
           {GUIDED_PROMPTS.map((prompt) => (
             <button
               key={prompt.scenario}
-              onClick={() => handleSendMessage(prompt.label)}
-              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full text-sm transition-colors"
+              onClick={() => handleSendMessage(prompt.label, prompt.scenario)}
+              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full text-sm transition-colors disabled:opacity-50"
+              disabled={isProcessing}
             >
               {prompt.label}
             </button>
@@ -166,24 +229,48 @@ export function Chatbot(): JSX.Element {
 
       {/* Input Area */}
       <div className="px-6 py-4 border-t border-slate-200">
-        <div className="relative">
-          <input
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Type your message..."
-            className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-slate-300 text-sm"
-          />
+        <div className="flex items-center gap-2">
+          <div className="relative flex-grow">
+            <input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder={isRecording ? "Listening..." : "Type your message..."}
+              className={`w-full pl-4 pr-12 py-3 bg-slate-50 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-slate-300 text-sm transition-all ${
+                isRecording ? 'border-red-400 ring-2 ring-red-100' : 'border-slate-200'
+              }`}
+              disabled={isProcessing}
+            />
+            <button
+              onClick={() => handleSendMessage()}
+              disabled={!inputValue.trim() || isProcessing}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-slate-800 text-white rounded-full hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+              aria-label="Send message"
+            >
+              <ArrowUp className="w-4 h-4" />
+            </button>
+          </div>
           <button
-            onClick={() => handleSendMessage()}
-            disabled={!inputValue.trim()}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-slate-800 text-white rounded-full hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
-            aria-label="Send message"
+            onMouseDown={startRecording}
+            onMouseUp={stopRecording}
+            disabled={isProcessing}
+            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+              isRecording 
+                ? 'bg-red-500 text-white animate-pulse scale-110 shadow-lg' 
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+            title="Hold to talk"
           >
-            <ArrowUp className="w-4 h-4" />
+            <Mic className={`w-5 h-5 ${isRecording ? 'fill-current' : ''}`} />
           </button>
         </div>
+        {isRecording && (
+          <p className="text-center text-xs text-red-500 mt-2 font-medium">Recording... Release to send</p>
+        )}
+        {isProcessing && !isRecording && (
+          <p className="text-center text-xs text-slate-400 mt-2">Thinking...</p>
+        )}
       </div>
     </div>
   );

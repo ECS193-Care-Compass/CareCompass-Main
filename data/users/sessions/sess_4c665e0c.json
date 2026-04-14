@@ -1,0 +1,28 @@
+{
+  "session_id": "sess_4c665e0c",
+  "user_id": "browser_session_1_1c4e74",
+  "created_at": "2026-03-05T00:17:07.007347+00:00",
+  "message_count": 4,
+  "messages": [
+    {
+      "role": "user",
+      "content": "I am User A, testing my first message",
+      "timestamp": "2026-03-05T00:17:07.247225+00:00"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello User A. I'm CARE Bot, and I'm here to offer support and information about follow-up care. It takes courage to reach out, and I want you to know that your safety, comfort, and choices are my top priorities.\n\nMy purpose is to help you explore medical, social, and mental health resources that might be helpful after a forensic exam. You are in complete control of what we discuss and when. There's no pressure here, and we can go at your pace.\n\nIf you're interested, I can provide general, clear information about things like medical follow-up, understanding testing timelines, or what to expect from different types of support. This information is for guidance, and it's always important to consult with your healthcare providers for personalized advice.\n\nPlease feel free to share what's on your mind when you're ready. I'm here to listen and help you find the information you need.",
+      "timestamp": "2026-03-05T00:17:13.549648+00:00"
+    },
+    {
+      "role": "user",
+      "content": "This is my second message, but same user and session",
+      "timestamp": "2026-03-05T00:17:15.362079+00:00"
+    },
+    {
+      "role": "assistant",
+      "content": "It takes a lot of strength to reach out, and I want to acknowledge your courage in connecting with CARE Bot today. You've been through a lot, and it's completely understandable to have questions about what comes next.\n\nRegarding medical follow-up after a forensic exam, there are a few important areas to consider, and remember, **all choices about your care are entirely yours**.\n\n1.  **Medical Prophylaxis (Preventative Medications):**\n    *   Sometimes, after an assault, healthcare providers may offer medications to help prevent potential infections like STIs or HIV.\n    *   These medications are often most effective when taken within a specific timeframe after the incident.\n    *   This is a personal decision, and a healthcare provider can discuss the benefits, risks, and answer any questions you have to help you decide what feels right for you.\n\n2.  **STI and HIV Testing:**\n    *   Initial testing is often done during the forensic exam. However, some infections can take time to show up in tests.\n    *   Follow-up testing is usually recommended a few weeks or months later to ensure accurate results. A healthcare provider can give you a specific timeline based on your individual situation.\n    *   This follow-up is an important step for your peace of mind and health, but again, it's your choice whether and when to pursue it.\n\n3.  **General Medical Follow-Up Appointments:**\n    *   These appointments are for checking on your overall physical health, addressing any injuries, and discussing any other medical concerns you might have.\n    *   They also provide an opportunity to talk about your emotional well-being and explore other support options.\n\nYou are in control of your healing journey. When you feel ready, we can explore how to connect you with a healthcare provider who can offer personalized information and support regarding these options. They can explain everything in detail, answer all your questions, and help you make informed decisions that are best for you.\n\nPlease remember that this information is general. For personalized medical advice, it's always best to consult directly with a trusted healthcare provider. I'm here to help you connect to those resources whenever you feel ready.",
+      "timestamp": "2026-03-05T00:17:21.867264+00:00"
+    }
+  ]
+}

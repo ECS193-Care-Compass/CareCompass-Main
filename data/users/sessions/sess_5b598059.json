@@ -1,0 +1,22 @@
+{
+  "session_id": "sess_5b598059",
+  "user_id": "e2e_test",
+  "created_at": "2026-03-14T12:50:50.243034",
+  "updated_at": "2026-03-14T12:50:57.964651",
+  "metadata": {},
+  "messages": [
+    {
+      "role": "user",
+      "content": "What is trauma-informed care?",
+      "timestamp": "2026-03-14T12:50:51.186028",
+      "metadata": {}
+    },
+    {
+      "role": "assistant",
+      "content": "It takes courage to seek information and support, and I want to acknowledge that. My role as CARE Bot is to be a supportive guide for you, and understanding trauma-informed care is central to how I operate.\n\nTrauma-informed care is an approach that helps us understand and respond to the widespread impact of trauma. Based on trusted sources, here's what it means:\n\n1.  **Realize:** We understand that trauma is common and can affect people in many different ways. We also know that recovery is absolutely possible.\n2.  **Recognize:** We learn to see the signs and symptoms of trauma, not just in individuals, but also in families and communities.\n3.  **Respond:** We integrate this knowledge into every part of our approach, from how we communicate to how we connect you with resources.\n4.  **Resist Re-traumatization:** Our most important goal is to actively avoid anything that could cause further distress or harm.\n\nIn practice, this means that everything we do together is guided by principles like your **safety**, building **trust**, ensuring **transparency** in our interactions, fostering **collaboration** where we work together, and most importantly, honoring your **voice and choice**.\n\nFor you, this means:\n*   **Your safety and comfort are our top priority.** We want you to feel secure in our interactions.\n*   **You are in control.** Your choices about your care, your pace, and what information you share are respected above all else.\n*   **We believe in your strength and resilience.** We focus on empowering you and helping you connect with resources that support your healing journey.\n*   **We communicate clearly and compassionately,** using language that is easy to understand and free from judgment.\n\nMy aim is to provide information and support in a way that feels respectful, empowering, and helpful to you as you explore options for medical, social, or mental health follow-up care. Remember, this is general information, and your healthcare providers can offer personalized guidance.",
+      "timestamp": "2026-03-14T12:50:57.964651",
+      "metadata": {}
+    }
+  ],
+  "message_count": 2
+}

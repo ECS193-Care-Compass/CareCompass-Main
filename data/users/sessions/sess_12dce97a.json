@@ -1,0 +1,18 @@
+{
+  "session_id": "sess_12dce97a",
+  "user_id": "test_frontend_user_2f39e5",
+  "created_at": "2026-03-05T00:23:37.212478+00:00",
+  "message_count": 2,
+  "messages": [
+    {
+      "role": "user",
+      "content": "Testing S3 backup with new error logging",
+      "timestamp": "2026-03-05T00:23:37.517181+00:00"
+    },
+    {
+      "role": "assistant",
+      "content": "It sounds like you're working on a technical task, and I want to be transparent that my capabilities are focused on a different area. My purpose as CARE Bot is to offer support and information to forensic nursing patients, helping them connect with medical, social, and mental health follow-up care after a difficult experience.\n\nIf you or someone you know is seeking guidance or resources related to medical follow-up, emotional support, or understanding options after a forensic exam, I am here to help in a safe and supportive way. Your well-being is important, and I want to ensure you get the right kind of assistance.",
+      "timestamp": "2026-03-05T00:23:45.113169+00:00"
+    }
+  ]
+}

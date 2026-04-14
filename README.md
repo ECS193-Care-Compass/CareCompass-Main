@@ -1,125 +1,237 @@
 # CARE Bot - Trauma-Informed RAG Chatbot
 
-## Prerequisites
+A trauma-informed chatbot powered by vector embeddings, semantic search, and Google Gemini AI. Built with FastAPI (backend), React + Electron (frontend), and ChromaDB (vector store).
 
-- **Python 3.11+**
+## Quick Start
+
+### Prerequisites
+
+- **Python 3.12+**
 - **Node.js 18+**
-- **Google Gemini API Key** 
-- **Supabase project** 
-- **AWS account** 
+- **AWS Account** (for S3 storage and Lambda deployment)
+- **Google Gemini API Key** (get one at [https://ai.google.dev](https://ai.google.dev))
 
-## 1. Setup Backend
+### 1. Clone & Setup Backend
 
 ```bash
-cd backend
+cd CareCompass
 
 # Create virtual environment
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 
-# Install dependencies
+# Install Python dependencies
 pip install -r requirements.txt
 ```
 
-## 2. Configure Environment
+### 2. Configure Environment Variables
 
-Create a `.env` file in the **project root**:
+Create a `.env` file in the root directory:
 
 ```env
-# Required
+# Google AI API
 GOOGLE_API_KEY=your_gemini_api_key_here
 
-# Supabase (authentication)
-SUPABASE_URL=https://your-project-id.supabase.co
-SUPABASE_JWT_SECRET=your_supabase_jwt_secret
+# AWS S3 Buckets (created automatically, or provide your own)
+S3_DOCUMENTS_BUCKET=care-compass-documents-{account-id}-dev
+S3_VECTORDB_BUCKET=care-compass-vectordb-{account-id}-dev
+S3_LOGS_BUCKET=care-compass-logs-{account-id}-dev
 
-# AWS (DynamoDB + S3)
-AWS_ACCESS_KEY_ID=your_aws_access_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret_key
-AWS_REGION=us-east-1
-```
-
-Optional settings (defaults shown):
-
-```env
+# Model Configuration (optional)
 MODEL_NAME=gemini-2.5-flash
 TEMPERATURE=0.7
 TOP_K=3
-SIMILARITY_THRESHOLD=0.7
-MAX_OUTPUT_TOKENS=4096
-EMBEDDING_MODEL=gemini-embedding-001
-ENABLE_CRISIS_DETECTION=true
-DYNAMODB_TABLE_NAME=care-compass-conversations
-DYNAMODB_TTL_MINUTES=30
-MAX_HISTORY_TURNS=10
 ```
 
-## 3. Setup Frontend Environment
-
-Create a `.env` file in `chatbot-frontend/`:
-
-```env
-VITE_SUPABASE_URL=https://your-project-id.supabase.co
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
-
-## 4. Run Backend
+### 3. Run Backend
 
 ```bash
-cd backend
+# Development with auto-reload
 uvicorn api:app --host 0.0.0.0 --port 8000 --reload
+
+# Production (no reload)
+uvicorn api:app --host 0.0.0.0 --port 8000
 ```
 
-Backend ready at: `http://localhost:8000`
+Backend ready at: `http://localhost:8000`  
+API docs: `http://localhost:8000/docs`
 
-> First startup builds the vectorstore using the Gemini embedding API. This may take a few minutes due to API rate limiting. Subsequent starts are fast.
-
-## 5. Run Frontend
+### 4. Run Frontend
 
 ```bash
 cd chatbot-frontend
+
+# Install dependencies
 npm install
+
+# Development
 npm run dev
+
+# Build for production
+npm run build
 ```
 
 Frontend ready at: `http://localhost:5173`
 
-## Build Frontend for Desktop
+## Architecture
 
-```bash
-cd chatbot-frontend
-npm run build:win    # Windows
-npm run build:mac    # macOS
-npm run build:linux  # Linux
+```
+┌─────────────────────────────────────────────────────────┐
+│                   Electron + React App                  │
+└─────────────────────────────────────────────────────────┘
+                            ↓
+                    FastAPI Backend (8000)
+                            ↓
+            ┌───────────────────────────────┐
+            ↓           ↓          ↓         ↓
+    [Crisis      [Retrieval] [Embedding] [LLM]
+     Detector]   (ChromaDB)  (Sentence  (Gemini
+                            Transformers) API)
+            ↓           ↓          ↓         ↓
+            └───────────────────────────────┘
+                            ↓
+            ┌──────────────────────┐
+            ↓           ↓          ↓         
+        [Documents] [Logs]    [VectorDB] 
+         (S3)       (S3)       (S3)       
+        Raw PDFs   API Calls  Backups    
 ```
 
-## Deploy to AWS Lambda
+## API Endpoints
 
-```powershell
-# Windows (PowerShell) — requires AWS CLI v2
-.\aws\deployment\deploy.ps1 -Environment dev -AWSProfile your_profile -GoogleApiKey "your_key" -SupabaseJwtSecret "your_secret"
+### Chat
+**POST** `/chat`
+```json
+{
+  "query": "What STI testing do I need?",
+  "scenario": "medical_followup"
+}
 ```
 
-Before deploying, upload the vectorstore to S3:
-```bash
-python aws/scripts/upload_vectorstore.py
-```
+### Categories
+**GET** `/categories`  
+Returns available support categories (medical, mental health, legal, etc.)
 
-See [aws/README.md](aws/README.md) for full deployment guide.
+### Health Check
+**GET** `/health`  
+Returns `{"status": "ok"}`
 
-## Run Tests
+### Stats
+**GET** `/stats`  
+Returns bot statistics (documents indexed, model info, etc.)
 
-```bash
-cd backend
-python -m pytest tests/
+### Clear Conversation
+**POST** `/clear`  
+Clears conversation history for fresh start
+
+## S3 Bucket Structure
+
+Your system uses 3 dedicated S3 buckets:
+
+| Bucket | Purpose | Contents |
+|--------|---------|----------|
+| **Documents** | Raw healthcare PDFs | SAMHSA guides, protocols, reference materials |
+| **VectorDB** | Database backups | Weekly snapshots of ChromaDB (disaster recovery) |
+| **Logs** | Audit trail | All API interactions with timestamps |
+
+**Automatic Backups:** ChromaDB is backed up to S3 weekly (configurable in `api.py` line 101: `backup_interval_hours=168`)
+
+## Core Components
+
+### 1. Crisis Detection (`src/safety/crisis_detector.py`)
+Scans for crisis keywords and provides immediate resources
+
+### 2. Vector Store (`src/embeddings/vector_store.py`)
+Local ChromaDB for fast semantic search (~300ms)
+
+### 3. Retriever (`src/retrieval/retriever.py`)
+Finds top-k relevant documents using cosine similarity
+
+### 4. LLM Handler (`src/generation/llm_handler.py`)
+Interface with Google Gemini API for response generation
+
+### 5. Backup Scheduler (`src/utils/backup_scheduler.py`)
+Automatic weekly backups of vector database to S3
+
+## Configuration
+
+Edit `config/settings.py` to customize:
+
+```python
+CHUNK_SIZE = 500              # Document chunk size (tokens)
+CHUNK_OVERLAP = 50            # Overlap between chunks
+TOP_K = 3                     # Documents to retrieve
+SIMILARITY_THRESHOLD = 0.7    # Minimum similarity score
+TEMPERATURE = 0.7             # LLM creativity (0-1)
 ```
 
 ## Troubleshooting
 
-| Problem | Fix |
-|---------|-----|
-| Backend won't start | Check if port 8000 is already in use |
-| Slow first startup | Vectorstore is building via Gemini embedding API — wait for it to finish |
-| Frontend can't reach backend | Make sure backend is running: `curl http://localhost:8000/health` |
-| Sign up "Failed to fetch" | Check Supabase env vars in `chatbot-frontend/.env` and CSP in `src/main/index.ts` |
-| DynamoDB unavailable | Check AWS credentials in `.env` — falls back to in-memory history gracefully |
+### Backend won't start
+```bash
+# Check if port 8000 is in use
+lsof -i :8000          # macOS/Linux
+netstat -ano | findstr :8000  # Windows
+
+# Kill and restart
+pkill -f uvicorn       # macOS/Linux
+taskkill /IM python.exe  # Windows
+```
+
+### Vector store initialization slow
+First startup downloads the embedding model (~400MB). Subsequent starts are fast.
+
+### S3 upload errors
+Verify AWS credentials: `~/.aws/credentials`  
+Ensure bucket names match your account ID in `.env`
+
+### Frontend can't reach backend
+Check backend is running: `curl http://localhost:8000/health`  
+Verify CORS is enabled (should be by default)
+
+## Testing
+
+```bash
+# Test backup functionality
+python test_backup.py
+
+# Manual API test
+curl http://localhost:8000/health
+```
+
+## Key Features
+
+**Trauma-Informed:** Responses follow SAMHSA principles  
+**Fast Retrieval:** Local vector search (~300ms)  
+**Crisis Detection:** Immediate escalation when needed  
+**Auto-Backup:** Weekly database backups to AWS S3  
+**Audit Trail:** All interactions logged  
+**Multi-Scenario:** Tailored responses for different situations  
+
+## Environment Setup Details
+
+### AWS Credentials
+```bash
+# Configure AWS credentials
+aws configure
+
+# Or manually create ~/.aws/credentials:
+[default]
+aws_access_key_id = YOUR_ACCESS_KEY
+aws_secret_access_key = YOUR_SECRET_KEY
+region = us-east-1
+```
+
+### First Run
+The backend will:
+1. Download embedding model (~400MB, first time only)
+2. Initialize ChromaDB vector store
+3. Begin accepting requests
+
+## Support
+
+For issues, check:
+1. Backend logs: `http://localhost:8000/docs` (Swagger UI)
+2. Browser console for frontend errors
+3. S3 console for backup status
+4. Ensure all environment variables are set

@@ -6,19 +6,22 @@ interface Resource {
   phone?: string;
   website?: string;
   address?: string;
+  available?: string;
 }
 
 const resources: Resource[] = [
   {
     name: "National Domestic Violence Hotline",
     description: "24/7 support, crisis intervention, and safety planning",
-    phone: "1-800-799-7233" 
+    phone: "1-800-799-7233",
+    available: "24/7"
   },
   {
     name: "WEAVE (Women Escaping A Violent Environment)",
     description: "Emergency shelter, counseling, and support groups in Sacramento",
     phone: "916-920-2952",
-    website: "weaveinc.org" 
+    website: "weaveinc.org",
+    available: "24/7 Crisis Line"
   },
   {
     name: "My Sister's House",

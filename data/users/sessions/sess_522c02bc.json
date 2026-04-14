@@ -1,0 +1,22 @@
+{
+  "session_id": "sess_522c02bc",
+  "user_id": "e2e_test_voice",
+  "created_at": "2026-03-14T12:51:24.517239",
+  "updated_at": "2026-03-14T12:51:34.236468",
+  "metadata": {},
+  "messages": [
+    {
+      "role": "user",
+      "content": "What support is available after a forensic exam?",
+      "timestamp": "2026-03-14T12:51:25.409862",
+      "metadata": {}
+    },
+    {
+      "role": "assistant",
+      "content": "It takes immense strength and courage to reach out and ask about support after a forensic exam, and I want to acknowledge you for taking this step. Please know that your safety, well-being, and choices are the most important things right now.\n\nAfter a forensic exam, a range of support options are typically available, and you have complete freedom to decide what feels right for you and when you're ready to explore them. These options are designed to help you connect with care that supports your recovery journey.\n\nSome common types of support include:\n\n*   **Medical Follow-Up:** This can involve addressing any physical health concerns that might arise from the experience or the exam itself, discussing options for preventative care (like STI prevention or emergency contraception), and ensuring your physical healing.\n*   **Emotional and Mental Health Support:** Many people find it helpful to connect with counselors or therapists who specialize in trauma. They can offer a safe, confidential space to process experiences, develop coping strategies, and work towards healing. These services are often trauma-informed, meaning they prioritize your emotional safety and empower you in your recovery.\n*   **Peer Support and Advocacy:** Connecting with others who have similar experiences, often through peer support groups or advocates, can be incredibly validating and provide a sense of community and hope. Advocates can also help you navigate various systems, understand your rights, and connect you to resources like legal aid if that's something you wish to explore.\n*   **Recovery Supports:** This is a broad category that can include various forms of ongoing assistance tailored to your individual needs, focusing on your overall well-being and helping you build on your strengths.\n\nRemember, you are in control of your journey. You don't have to pursue any support you don't feel ready for, and you can always change your mind. The goal is to provide accessible, timely, and understanding care that respects your individual needs and helps you build on your strengths and resilience.\n\nThis information is general, and it's always best to discuss your specific needs and options with a trusted healthcare provider or advocate who can connect you to local resources. Your healing is possible, and there are people and services ready to support you when you're ready.",
+      "timestamp": "2026-03-14T12:51:34.236468",
+      "metadata": {}
+    }
+  ],
+  "message_count": 2
+}

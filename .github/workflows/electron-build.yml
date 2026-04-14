@@ -1,0 +1,77 @@
+name: Build Electron App
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            platform: mac
+          - os: windows-latest
+            platform: win
+          - os: ubuntu-latest
+            platform: linux
+
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: chatbot-frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: chatbot-frontend
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+
+      - name: Create .env for build
+        working-directory: chatbot-frontend
+        run: |
+          echo "VITE_API_BASE_URL=${{ secrets.LAMBDA_API_URL || 'http://localhost:8000' }}" >> .env
+
+      - name: Build Electron app
+        working-directory: chatbot-frontend
+        run: npm run build:${{ matrix.platform }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: carecompass-${{ matrix.platform }}
+          path: |
+            chatbot-frontend/dist/*.dmg
+            chatbot-frontend/dist/*.exe
+            chatbot-frontend/dist/*.AppImage
+            chatbot-frontend/dist/*.deb
+          if-no-files-found: ignore
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

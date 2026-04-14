@@ -1,0 +1,23 @@
+{
+  "session_id": "sess_001",
+  "user_id": "user_john_doe",
+  "created_at": "2026-03-04T05:33:45.286599",
+  "message_count": 3,
+  "messages": [
+    {
+      "role": "user",
+      "content": "Hi, I'm feeling anxious",
+      "timestamp": "2026-03-04T05:33:45.352387"
+    },
+    {
+      "role": "assistant",
+      "content": "I understand. Can you tell me more?",
+      "timestamp": "2026-03-04T05:33:45.419570"
+    },
+    {
+      "role": "user",
+      "content": "I haven't been sleeping well",
+      "timestamp": "2026-03-04T05:33:45.477992"
+    }
+  ]
+}

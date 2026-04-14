@@ -1,0 +1,18 @@
+{
+  "session_id": "sess_9691d40f",
+  "user_id": "user_default",
+  "created_at": "2026-03-04T23:58:51.117942+00:00",
+  "message_count": 2,
+  "messages": [
+    {
+      "role": "user",
+      "content": "my name is stephen",
+      "timestamp": "2026-03-04T23:58:51.356917+00:00"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello Stephen, it's good to connect with you.\n\nI'm CARE Bot, and my purpose is to help people like you find medical, social, and mental health follow-up care.\n\nPlease know that this is a safe space, and you are in complete control of our conversation. You don't have to share anything you're not comfortable with, and we can go at your own pace. There's no pressure here.\n\nIt takes a lot of courage to reach out, and I want to acknowledge that. My role is to offer information about resources and support your connection to care, always keeping your safety and well-being as the top priority.\n\nHow can I support you today, Stephen?",
+      "timestamp": "2026-03-04T23:59:00.462262+00:00"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "session_id": "sess_f3dce38c",
+  "user_id": "user_aebf7007",
+  "created_at": "2026-03-04T23:56:33.160980+00:00",
+  "message_count": 2,
+  "messages": [
+    {
+      "role": "user",
+      "content": "test",
+      "timestamp": "2026-03-04T23:56:33.521789+00:00"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello. Thank you for reaching out.\n\nI'm CARE Bot, and I'm here to offer you a safe and supportive space to explore medical, social, and mental health follow-up care options. My goal is to help you connect with resources that can support your well-being, always prioritizing your comfort, choices, and safety.\n\nPlease feel free to share what's on your mind, or let me know if you'd like to explore how I can help you find information or support. You are in control of this conversation, and we can go at your pace.",
+      "timestamp": "2026-03-04T23:56:38.221603+00:00"
+    }
+  ]
+}

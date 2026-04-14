@@ -1,0 +1,22 @@
+{
+  "session_id": "sess_36027799",
+  "user_id": "test_user_1",
+  "created_at": "2026-03-14T12:14:30.089144",
+  "updated_at": "2026-03-14T12:14:38.657175",
+  "metadata": {},
+  "messages": [
+    {
+      "role": "user",
+      "content": "What is trauma-informed care?",
+      "timestamp": "2026-03-14T12:14:31.144218",
+      "metadata": {}
+    },
+    {
+      "role": "assistant",
+      "content": "That's a very important question, and I appreciate you asking about it. Understanding trauma-informed care can help you know what to expect from supportive services.\n\nTrauma-informed care is an approach that understands how common and impactful trauma can be, and how it can affect a person's well-being. It's built on a few core ideas to make sure you feel safe and supported:\n\n*   **Realizing** that trauma is widespread and that recovery is absolutely possible.\n*   **Recognizing** the signs and symptoms of trauma, not just in individuals, but also in how we interact with systems and services.\n*   **Responding** by making sure that all policies, procedures, and practices are designed with this understanding in mind.\n*   **Resisting** anything that might accidentally cause further distress or re-traumatization.\n\nIn simple terms, it means that any support you receive is focused on creating a physically and psychologically safe environment, building trust, giving you choices, and working with you as a partner. It's about respecting your experiences, acknowledging your strengths, and empowering you on your path to healing and well-being.\n\nAs CARE Bot, my aim is to provide you with information and connect you to resources in a way that always prioritizes your safety, respects your choices, and helps you feel empowered as you explore follow-up care options.",
+      "timestamp": "2026-03-14T12:14:38.657175",
+      "metadata": {}
+    }
+  ],
+  "message_count": 2
+}
