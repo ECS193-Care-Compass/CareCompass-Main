@@ -32,6 +32,14 @@ export interface CategoriesResponse {
   categories: CategoryInfo[];
 }
 
+export interface VoiceResponse {
+  user_transcript: string;
+  bot_response: string;
+  audio_base64: string;
+  is_crisis: boolean;
+  session_id: string;
+}
+
 export interface StatsResponse {
   vector_store: {
     document_count: number;
@@ -51,6 +59,7 @@ export interface StatsResponse {
 
 const endpoints = {
   chat: `${API_BASE_URL}/chat`,
+  voiceChat: `${API_BASE_URL}/voice-chat`,
   clear: `${API_BASE_URL}/clear`,
   stats: `${API_BASE_URL}/stats`,
   health: `${API_BASE_URL}/health`,
@@ -115,6 +124,39 @@ export async function sendChatMessage(
   });
 
   return handleResponse<ChatResponse>(response);
+}
+
+/**
+ * Send voice audio to CARE Bot for transcription + RAG + synthesis.
+ * @param audioBlob - Recorded audio blob (webm)
+ * @param sessionId - Session ID for conversation history
+ * @param authToken - Optional Bearer token for authenticated users
+ * @param scenario - Optional scenario category
+ */
+export async function sendVoiceChat(
+  audioBlob: Blob,
+  sessionId?: string,
+  authToken?: string,
+  scenario?: string,
+): Promise<VoiceResponse> {
+  logDebug('sendVoiceChat', { blobSize: audioBlob.size, sessionId });
+
+  const formData = new FormData();
+  const audioFile = new File([audioBlob], 'recording.webm', { type: 'audio/webm' });
+  formData.append('audio', audioFile);
+  if (sessionId) formData.append('session_id', sessionId);
+  if (scenario) formData.append('scenario', scenario);
+
+  const headers: Record<string, string> = {};
+  if (authToken) headers['Authorization'] = authToken;
+
+  const response = await fetch(endpoints.voiceChat, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  return handleResponse<VoiceResponse>(response);
 }
 
 // Clear the conversation history

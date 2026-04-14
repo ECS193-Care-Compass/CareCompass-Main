@@ -7,7 +7,9 @@ import logging
 import os
 from typing import Dict, Any, Optional
 import sys
+import base64
 from datetime import datetime
+from email import message_from_bytes
 import boto3
 
 # Configure logging
@@ -32,8 +34,9 @@ except ImportError as e:
     logger.warning(f"Failed to import supabase_auth: {e}")
     verify_supabase_token = None
 
-# Global bot instance (persists across warm Lambda invocations)
+# Global instances (persist across warm Lambda invocations)
 bot_instance = None
+voice_service_instance = None
 
 
 def _resolve_session_id(event: Dict[str, Any], body: Dict[str, Any]) -> Optional[str]:
@@ -227,6 +230,128 @@ def handle_health() -> Dict[str, Any]:
     return build_response(200, {"status": "ok", "message": "CARE Bot API is running"})
 
 
+def get_voice_service():
+    """Lazily initialize and cache the VoiceService."""
+    global voice_service_instance
+    if voice_service_instance is not None:
+        return voice_service_instance
+    try:
+        from src.utils.voice_service import VoiceService
+        voice_service_instance = VoiceService()
+        logger.info("VoiceService initialized")
+    except Exception as e:
+        logger.warning(f"VoiceService not available: {e}")
+    return voice_service_instance
+
+
+def _parse_multipart(raw_body: bytes, content_type: str):
+    """
+    Parse multipart/form-data using the standard email module.
+    Returns (fields: dict[str, str], files: dict[str, tuple[str, bytes]])
+    """
+    msg = message_from_bytes(
+        f"Content-Type: {content_type}\r\n\r\n".encode() + raw_body
+    )
+    fields: Dict[str, str] = {}
+    files: Dict[str, tuple] = {}
+
+    for part in msg.walk():
+        if part.get_content_maintype() == "multipart":
+            continue
+        disp = part.get("Content-Disposition", "")
+        name = part.get_param("name", header="content-disposition")
+        if not name:
+            continue
+        if "filename=" in disp:
+            filename = part.get_param("filename", header="content-disposition") or ""
+            files[name] = (filename, part.get_payload(decode=True) or b"")
+        else:
+            payload = part.get_payload(decode=False)
+            fields[name] = payload.strip() if isinstance(payload, str) else ""
+
+    return fields, files
+
+
+def handle_voice_chat(event: Dict[str, Any], bot: Any) -> Dict[str, Any]:
+    """Handle /voice-chat POST — transcribe audio → RAG → synthesize response."""
+    headers = event.get("headers", {}) or {}
+    content_type = (
+        headers.get("content-type") or headers.get("Content-Type") or ""
+    )
+
+    raw_body_str = event.get("body") or ""
+    is_base64_encoded = event.get("isBase64Encoded", False)
+
+    if is_base64_encoded:
+        raw_body = base64.b64decode(raw_body_str)
+    else:
+        raw_body = raw_body_str.encode("utf-8") if isinstance(raw_body_str, str) else raw_body_str
+
+    # Parse multipart form data
+    fields, files = _parse_multipart(raw_body, content_type)
+
+    text_input = fields.get("text", "").strip()
+    scenario = fields.get("scenario") or None
+    session_id = fields.get("session_id") or None
+
+    # Resolve session from JWT if present
+    auth_header = headers.get("authorization") or headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer ") and verify_supabase_token:
+        jwt_user = verify_supabase_token(auth_header[7:])
+        if jwt_user:
+            session_id = jwt_user
+
+    voice_svc = get_voice_service()
+    if not voice_svc:
+        return build_response(503, {"error": "Voice service not available"})
+
+    try:
+        # 1. Transcribe
+        transcript = ""
+        if text_input:
+            transcript = text_input
+        elif "audio" in files:
+            filename, audio_bytes = files["audio"]
+            file_ext = filename.rsplit(".", 1)[-1] if "." in filename else "webm"
+            transcript = voice_svc.transcribe_audio(audio_bytes, file_ext) or ""
+
+        # Handle silence/empty
+        if not transcript:
+            fallback = "I'm sorry, I didn't quite catch that. Could you please say that again?"
+            audio_out = voice_svc.synthesize_speech(fallback)
+            audio_b64 = base64.b64encode(audio_out).decode() if audio_out else ""
+            return build_response(200, {
+                "user_transcript": "[Silence/Unclear]",
+                "bot_response": fallback,
+                "audio_base64": audio_b64,
+                "is_crisis": False,
+                "session_id": session_id,
+            })
+
+        # 2. RAG
+        result = bot.process_query(
+            user_query=transcript,
+            scenario_category=scenario,
+            session_id=session_id,
+        )
+
+        # 3. Synthesize
+        audio_out = voice_svc.synthesize_speech(result["response"])
+        audio_b64 = base64.b64encode(audio_out).decode() if audio_out else ""
+
+        return build_response(200, {
+            "user_transcript": transcript,
+            "bot_response": result["response"],
+            "audio_base64": audio_b64,
+            "is_crisis": result["is_crisis"],
+            "session_id": session_id,
+        })
+
+    except Exception as e:
+        logger.error(f"Error in voice_chat: {e}", exc_info=True)
+        return build_response(500, {"error": "Error processing voice message"})
+
+
 def handle_categories() -> Dict[str, Any]:
     """Handle /categories GET requests"""
     categories = {
@@ -278,6 +403,11 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if path == "/chat" and http_method == "POST":
             response = handle_chat(event, bot)
             log_interaction_to_s3(event, response, "chat_request")
+            return response
+
+        elif path == "/voice-chat" and http_method == "POST":
+            response = handle_voice_chat(event, bot)
+            log_interaction_to_s3(event, response, "voice_chat_request")
             return response
 
         elif path == "/clear" and http_method == "POST":
