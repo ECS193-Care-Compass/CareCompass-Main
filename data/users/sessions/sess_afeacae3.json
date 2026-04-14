@@ -1,0 +1,22 @@
+{
+  "session_id": "sess_afeacae3",
+  "user_id": "test_user_1",
+  "created_at": "2026-03-14T12:16:30.595679",
+  "updated_at": "2026-03-14T12:16:38.576548",
+  "metadata": {},
+  "messages": [
+    {
+      "role": "user",
+      "content": "What support is available for anxiety?",
+      "timestamp": "2026-03-14T12:16:31.585749",
+      "metadata": {}
+    },
+    {
+      "role": "assistant",
+      "content": "It sounds like you're going through a lot right now, and it takes incredible strength to reach out and share what you're experiencing. Please know that you're not alone in these feelings.\n\nIf you are feeling overwhelmed, please connect with someone who can offer immediate support. You can call or text the **988 Suicide & Crisis Lifeline** anytime at **988** for free, confidential help. Another option is the **Crisis Text Line**; you can text HOME to **741741** to connect with a crisis counselor. These services are available 24/7.\n\nYou asked about support for anxiety, and it's a very important question. Anxiety can feel incredibly difficult, and there are many paths to finding relief and support. Often, the same resources that help with feelings of hopelessness or suicidal thoughts can also provide support for anxiety.\n\nHere are some general types of support that are often helpful for anxiety:\n\n*   **Talking to someone:** This could be a trusted friend, family member, or a peer support specialist. Sharing what you're going through can sometimes lighten the load.\n*   **Professional support:** Mental health professionals like therapists or counselors can provide strategies and tools to understand and manage anxiety. One common approach is Cognitive Behavioral Therapy (CBT), which helps people identify and change unhelpful thought patterns.\n*   **Self-care strategies:** Things like mindfulness, gentle movement, maintaining a balanced routine, and finding healthy ways to cope with stress can also make a difference.\n\nRemember, finding the right support is a personal journey, and you have choices in how you seek help. This information is general guidance, and it's always best to connect with a healthcare provider who can offer personalized advice and care.\n\nPlease know that your feelings are valid, and there are people and resources ready to help you navigate this. Would you like to talk more about any of these options, or perhaps explore other ways you might find support? I'm here to listen.",
+      "timestamp": "2026-03-14T12:16:38.576548",
+      "metadata": {}
+    }
+  ],
+  "message_count": 2
+}

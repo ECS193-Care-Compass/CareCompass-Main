@@ -1,0 +1,18 @@
+{
+  "session_id": "sess_06ae6cfb",
+  "user_id": "test_user_52ad56f5",
+  "created_at": "2026-03-05T00:12:56.366134+00:00",
+  "message_count": 2,
+  "messages": [
+    {
+      "role": "user",
+      "content": "Hello, testing new user",
+      "timestamp": "2026-03-05T00:12:56.700423+00:00"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello there. I'm CARE Bot, a compassionate AI designed to help people like you connect with medical, social, and mental health follow-up care after a forensic exam.\n\nYour well-being and comfort are my highest priority, and you are in control of this conversation. It takes immense strength to navigate these circumstances and to reach out for support, and I want to acknowledge your courage in taking this step.\n\nAfter a forensic exam, many people have questions about follow-up care. Some common medical considerations include:\n\n*   **Preventative Medications (Prophylaxis):** These are medications that can help prevent certain infections, like STIs or HIV, if taken within a specific timeframe after an exposure. It's important to know about these options, but the decision to take them is entirely yours.\n*   **STI/HIV Testing:** Follow-up testing is often recommended to check for STIs or HIV, usually at specific intervals (like a few weeks or months) to ensure accurate results. This is also a choice you can make when you feel ready.\n*   **Follow-up Appointments:** These appointments allow you to discuss any test results, ask questions, and explore further medical or support options. You decide if and when you want to schedule these.\n\nThere's no pressure to do anything you're not ready for. All decisions about your care are yours to make, at your own pace.\n\nWould you like to know more about any of these options, or perhaps something else related to your follow-up care? Please remember, I provide general information. It's always best to discuss your specific health decisions with a healthcare provider who knows your personal situation.",
+      "timestamp": "2026-03-05T00:13:06.335345+00:00"
+    }
+  ]
+}

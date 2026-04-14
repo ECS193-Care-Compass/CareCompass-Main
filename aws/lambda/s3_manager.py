@@ -25,9 +25,13 @@ class S3Manager:
             region: AWS region (default: us-east-1)
         """
         self.s3_client = boto3.client("s3", region_name=region)
-        self.documents_bucket = os.getenv("S3_DOCUMENTS_BUCKET", "care-compass-documents-432732422396-dev")
-        self.processed_bucket = os.getenv("S3_PROCESSED_BUCKET", "care-compass-processed-432732422396-dev")
-        self.vectordb_bucket = os.getenv("S3_VECTORDB_BUCKET", "care-compass-vectordb-432732422396-dev")
+        self.documents_bucket = os.getenv("S3_DOCUMENTS_BUCKET", "")
+        self.processed_bucket = os.getenv("S3_PROCESSED_BUCKET", "")
+        self.vectordb_bucket = os.getenv("S3_VECTORDB_BUCKET", "")
+        if not self.documents_bucket:
+            logger.warning("S3_DOCUMENTS_BUCKET not set in environment variables")
+        if not self.vectordb_bucket:
+            logger.warning("S3_VECTORDB_BUCKET not set in environment variables")
         
         logger.info(f"S3Manager initialized with buckets: {self.documents_bucket}, {self.processed_bucket}, {self.vectordb_bucket}")
     
@@ -224,7 +228,7 @@ class S3Manager:
                 try:
                     self.s3_client.head_bucket(Bucket=bucket_name)
                     logger.info(f"Bucket {bucket_name} already exists")
-                except:
+                except Exception:
                     logger.info(f"Creating bucket {bucket_name}")
                     self.s3_client.create_bucket(Bucket=bucket_name)
                     # Enable versioning for backups

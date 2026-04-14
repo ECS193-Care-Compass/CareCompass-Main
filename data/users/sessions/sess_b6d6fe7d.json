@@ -1,0 +1,22 @@
+{
+  "session_id": "sess_b6d6fe7d",
+  "user_id": "e2e_test",
+  "created_at": "2026-03-14T12:51:12.888443",
+  "updated_at": "2026-03-14T12:51:20.937521",
+  "metadata": {},
+  "messages": [
+    {
+      "role": "user",
+      "content": "Tell me about HIV testing",
+      "timestamp": "2026-03-14T12:51:13.785539",
+      "metadata": {}
+    },
+    {
+      "role": "assistant",
+      "content": "Thank you for asking about HIV testing. That's a really important question, and it shows great strength to seek this information. Your well-being and comfort are our top priorities.\n\nRegarding HIV testing, trusted sources like the CDC emphasize that getting tested is a good step for everyone, no matter who you are. It's about knowing for sure and taking charge of your health. Your healthcare provider can offer an HIV test, along with counseling and referrals for any other services you might need.\n\nAfter a forensic exam, discussing HIV testing is part of making sure you have all the information and options for your health journey. The decision to get tested, and when, is entirely yours. You are in control of your health choices, and we want you to feel safe and empowered in making them. If you choose to get tested, your care team can explain what to expect and answer all your questions.\n\nFor more information on HIV screening, prevention, treatment, and care, you can visit cdc.gov/StopHIVTogether or cdc.gov/HIVNEXUS.\n\nPlease remember, this is general information. It's always best to discuss your personal health decisions and any concerns with a healthcare provider who can give you guidance tailored to your specific situation. We are here to support you in connecting to the care that feels right for you.",
+      "timestamp": "2026-03-14T12:51:20.937521",
+      "metadata": {}
+    }
+  ],
+  "message_count": 2
+}

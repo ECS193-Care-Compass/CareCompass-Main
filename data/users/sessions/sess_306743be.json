@@ -1,0 +1,22 @@
+{
+  "session_id": "sess_306743be",
+  "user_id": "test_user_1",
+  "created_at": "2026-03-14T12:15:20.606564",
+  "updated_at": "2026-03-14T12:15:30.449084",
+  "metadata": {},
+  "messages": [
+    {
+      "role": "user",
+      "content": "I need help with HIV testing",
+      "timestamp": "2026-03-14T12:15:21.619474",
+      "metadata": {}
+    },
+    {
+      "role": "assistant",
+      "content": "It takes a lot of strength to reach out, and I'm here to help you understand more about HIV testing. It's completely understandable to have questions about this, and I want to assure you that you are in control of your choices every step of the way. Your safety and well-being are my top priority.\n\nRegarding HIV testing, trusted sources like the CDC emphasize that an HIV test is available for everyone, and it's a way to know for sure about your health. If you are considering an HIV test, you can ask your healthcare provider about it. This kind of testing is often a part of follow-up care after a forensic exam, but the decision to test is always yours, and there is no pressure.\n\nFor more information on HIV screening, prevention, treatment, and care, you can visit these trusted resources at your own pace:\n*   **cdc.gov/StopHIVTogether**\n*   **cdc.gov/HIVNEXUS**\n\nRemember, I'm here to provide general information and resources. For any specific medical advice or to schedule a test, it's always best to talk directly with a healthcare provider. Take your time to process this information, and please know that recovery and accessing the care you need are absolutely possible.",
+      "timestamp": "2026-03-14T12:15:30.449084",
+      "metadata": {}
+    }
+  ],
+  "message_count": 2
+}

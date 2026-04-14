@@ -1,0 +1,124 @@
+name: CD - Deploy to AWS
+
+on:
+  # Manual trigger only until secrets are configured
+  # Uncomment 'push' below after adding GitHub secrets
+  # push:
+  #   branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - prod
+
+env:
+  AWS_REGION: us-east-1
+  PYTHON_VERSION: "3.11"
+  SAM_TEMPLATE: aws/infrastructure/template.yaml
+
+jobs:
+  # ==================== DEPLOY LAMBDA ====================
+  deploy:
+    name: Deploy to AWS
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up SAM CLI
+        uses: aws-actions/setup-sam@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set environment
+        id: env
+        run: |
+          ENV="${{ github.event.inputs.environment || 'dev' }}"
+          echo "environment=$ENV" >> $GITHUB_OUTPUT
+          echo "stack_name=care-compass-stack-$ENV" >> $GITHUB_OUTPUT
+
+      - name: Validate SAM template
+        run: sam validate -t ${{ env.SAM_TEMPLATE }}
+
+      - name: Build Lambda
+        run: |
+          sam build -t ${{ env.SAM_TEMPLATE }}
+
+      - name: Deploy to AWS
+        run: |
+          sam deploy \
+            --stack-name ${{ steps.env.outputs.stack_name }} \
+            --capabilities CAPABILITY_IAM \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              Environment=${{ steps.env.outputs.environment }} \
+              GoogleAPIKey=${{ secrets.GOOGLE_API_KEY }}
+
+      - name: Get deployment outputs
+        run: |
+          aws cloudformation describe-stacks \
+            --stack-name ${{ steps.env.outputs.stack_name }} \
+            --query 'Stacks[0].Outputs' \
+            --output table
+
+  # ==================== SYNC DOCUMENTS TO S3 ====================
+  sync-documents:
+    name: Sync Documents to S3
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: github.event_name == 'push'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Sync raw documents to S3
+        run: |
+          if [ -d "data/raw" ] && [ "$(ls -A data/raw 2>/dev/null)" ]; then
+            aws s3 sync data/raw/ s3://care-compass-documents-${{ secrets.AWS_ACCOUNT_ID }}-dev/raw/ --delete
+            echo "Documents synced to S3"
+          else
+            echo "No documents to sync"
+          fi
+
+  # ==================== NOTIFY ====================
+  notify:
+    name: Deployment Notification
+    runs-on: ubuntu-latest
+    needs: [deploy, sync-documents]
+    if: always()
+    
+    steps:
+      - name: Deployment Status
+        run: |
+          if [ "${{ needs.deploy.result }}" == "success" ]; then
+            echo "✅ Deployment successful!"
+          else
+            echo "❌ Deployment failed"
+            exit 1
+          fi

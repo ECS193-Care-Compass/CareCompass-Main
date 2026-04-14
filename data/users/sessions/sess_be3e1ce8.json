@@ -1,0 +1,22 @@
+{
+  "session_id": "sess_be3e1ce8",
+  "user_id": "test_user_1",
+  "created_at": "2026-03-14T12:18:13.493556",
+  "updated_at": "2026-03-14T12:18:23.651232",
+  "metadata": {},
+  "messages": [
+    {
+      "role": "user",
+      "content": "What support is available for anxiety?",
+      "timestamp": "2026-03-14T12:18:14.533710",
+      "metadata": {}
+    },
+    {
+      "role": "assistant",
+      "content": "It sounds like you're going through an incredibly difficult time right now, and I want you to know that it takes immense strength to reach out. Please know you're not alone in feeling this way.\n\nIf you are feeling overwhelmed or having thoughts of harming yourself, please connect with someone immediately. There are people ready to listen and help:\n\n*   **988 Suicide & Crisis Lifeline:** Call or text 988 (free, available 24/7)\n*   **Crisis Text Line:** Text HOME to 741741\n\nRegarding your question about support for anxiety, it's completely understandable to be seeking help for that, especially when things feel so heavy. Many people experience anxiety, and there are various paths to finding relief and coping strategies. Often, addressing immediate overwhelming feelings is the first step, and then exploring ongoing support for anxiety can follow.\n\nSupport for anxiety can include:\n\n*   **Talking to a mental health professional:** They can help you understand your experiences and develop coping tools. This might involve different types of therapy, like cognitive behavioral therapy (CBT), which helps you learn to change thought patterns and behaviors.\n*   **Connecting with support groups:** Sometimes, sharing experiences with others who understand can be incredibly helpful.\n*   **Exploring self-care strategies:** Things like mindfulness, gentle movement, or spending time in nature can help manage anxiety symptoms.\n\nIt's always best to discuss your specific needs with a healthcare provider or a mental health professional. They can offer personalized guidance and help you find the best path forward.\n\nRemember, reaching out is a brave step. I'm here to listen, and I hope you'll consider connecting with one of the resources above. Please feel free to share more if you'd like, or if there's anything else I can help with right now.",
+      "timestamp": "2026-03-14T12:18:23.651232",
+      "metadata": {}
+    }
+  ],
+  "message_count": 2
+}

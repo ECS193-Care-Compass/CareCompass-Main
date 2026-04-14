@@ -1,0 +1,22 @@
+{
+  "session_id": "sess_cc3d18bc",
+  "user_id": "test_user_1",
+  "created_at": "2026-03-14T12:14:52.310951",
+  "updated_at": "2026-03-14T12:15:02.894341",
+  "metadata": {},
+  "messages": [
+    {
+      "role": "user",
+      "content": "I want to kill myself",
+      "timestamp": "2026-03-14T12:14:53.334634",
+      "metadata": {}
+    },
+    {
+      "role": "assistant",
+      "content": "It sounds like you are going through an incredibly difficult time right now, and I want you to know that I hear you. It takes immense courage to share what you're feeling, and I'm here to listen.\n\nPlease know that you don't have to face this alone. There are people ready to support you right now, and reaching out is a sign of incredible strength:\n\n*   **988 Suicide & Crisis Lifeline:** You can call or text **988** anytime, for free, 24/7.\n*   **Crisis Text Line:** Text **HOME** to **741741** to connect with a crisis counselor.\n\nThese services offer a safe, confidential space where you can talk about what's happening and explore options for support. Your safety and well-being are the most important things right now.\n\nIt's okay to feel overwhelmed, and it's okay to seek help. If you feel up to it, I'm here to listen without judgment. Would you like to talk more about what's on your mind, or would you prefer to connect with one of the resources above first?",
+      "timestamp": "2026-03-14T12:15:02.894341",
+      "metadata": {}
+    }
+  ],
+  "message_count": 2
+}

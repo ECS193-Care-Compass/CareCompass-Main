@@ -127,9 +127,9 @@ cp "$LAMBDA_DIR/s3_manager.py" "$BUILD_DIR/"
 
 # Copy source code
 echo -e "  Copying source code..."
-cp -r "$PROJECT_ROOT/backend/src" "$BUILD_DIR/"
-cp -r "$PROJECT_ROOT/backend/config" "$BUILD_DIR/"
-cp "$PROJECT_ROOT/backend/main.py" "$BUILD_DIR/"
+cp -r "$PROJECT_ROOT/src" "$BUILD_DIR/"
+cp -r "$PROJECT_ROOT/config" "$BUILD_DIR/"
+cp "$PROJECT_ROOT/main.py" "$BUILD_DIR/"
 
 # Install dependencies
 echo -e "  Installing Python dependencies..."
@@ -162,7 +162,6 @@ sam deploy \
         GoogleAPIKey="$GOOGLE_API_KEY" \
         LambdaMemory="$LAMBDA_MEMORY" \
         LambdaTimeout="$LAMBDA_TIMEOUT" \
-    --resolve-image-repos \
     --no-fail-on-empty-changeset \
     --no-confirm-changeset
 

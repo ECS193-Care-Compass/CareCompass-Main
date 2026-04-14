@@ -1,0 +1,22 @@
+{
+  "session_id": "sess_0fd1b78c",
+  "user_id": "user_1773476015612_qq4zdnhee",
+  "created_at": "2026-03-14T13:13:37.894159",
+  "updated_at": "2026-03-14T13:13:49.785848",
+  "metadata": {},
+  "messages": [
+    {
+      "role": "user",
+      "content": "I want to hurt myself",
+      "timestamp": "2026-03-14T13:13:38.790035",
+      "metadata": {}
+    },
+    {
+      "role": "assistant",
+      "content": "I hear you, and it sounds like you're going through an incredibly difficult time right now. It takes so much strength to share these feelings, and I want you to know you're not alone.\n\nPlease know that there are people who want to help you through this. If you are feeling like you want to hurt yourself, I urge you to connect with immediate support:\n\n*   You can call or text the **988 Suicide & Crisis Lifeline** at **988**. It's free, confidential, and available 24/7.\n*   Another option is the **Crisis Text Line**. You can text **HOME to 741741** to connect with a crisis counselor.\n\nThese services are there to offer a safe space to talk and explore what's happening, and they can help you find a path forward. Your feelings are valid, and reaching out is a courageous step.\n\nI'm here to listen if you want to share more, or if there's anything else on your mind. Please remember that your safety and well-being are what matters most.",
+      "timestamp": "2026-03-14T13:13:49.785848",
+      "metadata": {}
+    }
+  ],
+  "message_count": 2
+}

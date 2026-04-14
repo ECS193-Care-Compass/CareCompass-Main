@@ -1,0 +1,22 @@
+{
+  "session_id": "sess_bd3d49a3",
+  "user_id": "test_user_voice",
+  "created_at": "2026-03-14T12:22:15.949901",
+  "updated_at": "2026-03-14T12:22:27.877183",
+  "metadata": {},
+  "messages": [
+    {
+      "role": "user",
+      "content": "What support is available for anxiety?",
+      "timestamp": "2026-03-14T12:22:16.972366",
+      "metadata": {}
+    },
+    {
+      "role": "assistant",
+      "content": "It sounds like you are carrying a heavy burden right now, and I want you to know that your feelings are valid, and you don't have to face this alone. It takes immense strength to reach out, and I'm here to listen.\n\nIf you're feeling overwhelmed, please know there are people ready to support you right away:\n\n*   You can call or text the **988 Suicide & Crisis Lifeline** at **988** (it's free, confidential, and available 24/7).\n*   Another option is to text **HOME** to **741741** to connect with the **Crisis Text Line**.\n\nYou asked about support for anxiety, and that's a really important question. There are many helpful resources and approaches available to manage anxiety, and finding what works best for you is a journey you don't have to take by yourself.\n\nOften, people find relief through:\n\n*   **Therapy:** Working with a mental health professional can provide a safe space to explore your feelings and learn coping strategies. Types of therapy like Cognitive Behavioral Therapy (CBT) are very effective in helping individuals understand and manage anxious thoughts and behaviors.\n*   **Medication:** For some, medication, prescribed by a doctor or psychiatrist, can be a helpful part of a broader treatment plan to reduce anxiety symptoms.\n*   **Support Groups:** Connecting with others who have similar experiences can offer a sense of community and shared understanding.\n*   **Self-Care Strategies:** Practices like mindfulness, deep breathing exercises, regular physical activity, and ensuring adequate sleep can also play a significant role in managing anxiety.\n\nThe most important step is connecting with a trusted healthcare provider or mental health professional. They can help you explore these options, understand your specific needs, and create a personalized plan that prioritizes your well-being. Please remember, I'm an AI and can offer general information, but a professional can provide tailored advice and care.\n\nYou have the right to choose the kind of support that feels right for you, and finding that support can make a real difference. I'm here to listen if you'd like to share more or have any other questions.",
+      "timestamp": "2026-03-14T12:22:27.877183",
+      "metadata": {}
+    }
+  ],
+  "message_count": 2
+}

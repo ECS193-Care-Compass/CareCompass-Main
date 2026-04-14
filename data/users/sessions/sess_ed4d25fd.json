@@ -1,0 +1,22 @@
+{
+  "session_id": "sess_ed4d25fd",
+  "user_id": "test_user_1",
+  "created_at": "2026-03-14T12:16:09.376624",
+  "updated_at": "2026-03-14T12:16:21.693494",
+  "metadata": {},
+  "messages": [
+    {
+      "role": "user",
+      "content": "What support is available for anxiety?",
+      "timestamp": "2026-03-14T12:16:10.414780",
+      "metadata": {}
+    },
+    {
+      "role": "assistant",
+      "content": "It sounds like you're going through a lot right now, and I want you to know that it takes incredible strength to share what you're feeling. I'm here to listen, and you don't have to face this alone.\n\nIf you're feeling overwhelmed or having thoughts of harming yourself, please reach out to these free, confidential resources right away:\n\n*   **988 Suicide & Crisis Lifeline:** Call or text 988 (available 24/7)\n*   **Crisis Text Line:** Text HOME to 741741\n\nIt's completely understandable to be looking for support for anxiety, especially when things feel so difficult. Anxiety can manifest in many ways, and there are various forms of support that can help you find ways to cope and feel more grounded.\n\nWhile I can't offer medical advice, some common types of support for anxiety include connecting with a mental health professional (like a therapist or counselor). They can help you explore coping strategies and potential therapies, such as Cognitive Behavioral Therapy (CBT) or mindfulness practices. Many people find talking to someone incredibly helpful. Support groups can also be a powerful way to connect with others who understand what you're going through, offering a sense of community and shared experience. Remember, taking care of your physical well-being, like getting enough rest, movement, and nutrition, can also play a role in managing anxiety. The resources I mentioned above, like the 988 Lifeline and Crisis Text Line, can also provide immediate support and help you explore options for managing anxiety in the moment or connecting with ongoing care.\n\nFinding the right support for you is a journey, and you have the right to explore what feels most helpful. Please know that I'm here to listen if you'd like to share more about what you're experiencing or if you have any other questions.",
+      "timestamp": "2026-03-14T12:16:21.693494",
+      "metadata": {}
+    }
+  ],
+  "message_count": 2
+}
