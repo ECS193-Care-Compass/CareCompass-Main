@@ -124,7 +124,7 @@ export const WelcomeGlowBox = ({ sessionId, authToken }: WelcomeGlowBoxProps) =>
   ];
 
   return (
-    <div className="relative flex flex-col w-full max-w-[min(90vw,70rem)] mx-auto mt-0 px-4 sm:px-6 md:px-12 py-2 h-[80vh] sm:h-[75vh] md:h-[70vh] max-h-[calc(100vh-12rem)] transition-all duration-300 border border-transparent rounded-3xl hover:bg-transparent hover:border-teal-700/40">
+    <div className="relative flex flex-col w-full max-w-[min(90vw,70rem)] mx-auto mt-0 px-4 lg:px-12 py-2 h-[80vh] lg:h-[70vh] max-h-[calc(100vh-6rem)] lg:max-h-[calc(100vh-12rem)] transition-all duration-300 border border-transparent rounded-3xl hover:bg-transparent hover:border-teal-700/40">
       {/* REMOVE COMMENT TO ENABLE LANGUAGE BUTTON */}
       {/* {messages.length === 0 && (
         <div className="absolute top-4 right-6">
@@ -137,14 +137,21 @@ export const WelcomeGlowBox = ({ sessionId, authToken }: WelcomeGlowBoxProps) =>
           </button>
         </div>
       )} */}
-      {/* Message Area (flexible height, scrolls when overflowing) */}
       <div ref={chatRef} className="flex-1 w-full overflow-y-auto px-4 py-4 flex flex-col">
         <div className={`space-y-4 ${messages.length === 0 ? 'flex-1 flex items-center justify-center' : ''}`}>
             {messages.length === 0 ? (
               <h2 className="text-2xl font-medium text-center text-teal-900/80">
-                Hello, you're safe here. I'm here to listen and provide support.
-                <br />
-                How can I help you today?
+                <span className="2xl:hidden">
+                  Hello, you're safe here.<br />
+                  I'm here to listen and provide support.<br />
+                  How can I help you today?
+                </span>
+                <span className="hidden 2xl:block">
+                  Hello, you're safe here.{' '}
+                  <span className="inline-block whitespace-nowrap">I'm here to listen and provide support.</span>
+                  <br />
+                  How can I help you today?
+                </span>
               </h2>
             ) : (
               <>
