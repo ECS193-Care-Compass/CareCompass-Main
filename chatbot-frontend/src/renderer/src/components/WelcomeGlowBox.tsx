@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from "react"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
 import ReactMarkdown from "react-markdown"
-import { ArrowUp } from "lucide-react"
+import { ArrowUp, Mic } from "lucide-react"
 import { motion, AnimatePresence } from 'framer-motion'
-import { sendChatMessage } from "../api"
+import { sendChatMessage, sendVoiceChat } from "../api"
 
 interface WelcomeGlowBoxProps {
   sessionId: string
@@ -20,8 +20,11 @@ export const WelcomeGlowBox = ({ sessionId, authToken }: WelcomeGlowBoxProps) =>
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const chatRef = useRef<HTMLDivElement | null>(null);
   const lastMsgRef = useRef<HTMLDivElement | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     if (chatRef.current) {
@@ -55,6 +58,65 @@ export const WelcomeGlowBox = ({ sessionId, authToken }: WelcomeGlowBoxProps) =>
     }
   };
 
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        stream.getTracks().forEach((track) => track.stop());
+        await handleVoiceSubmit(audioBlob);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: "error", text: "Microphone access denied. Please check your browser permissions." },
+      ]);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const handleVoiceSubmit = async (blob: Blob) => {
+    setIsLoading(true);
+    try {
+      const data = await sendVoiceChat(blob, sessionId, authToken);
+
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", text: data.user_transcript },
+        { role: "ai", text: data.bot_response },
+      ]);
+
+      if (data.audio_base64) {
+        const audio = new Audio(`data:audio/mpeg;base64,${data.audio_base64}`);
+        audio.play().catch((e) => console.error("Audio playback failed:", e));
+      }
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: "error", text: "Sorry, I had trouble processing your voice message. Please try again or type your message." },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const GUIDED_PROMPTS = [
     { label: "Mental Health Support", scenario: "mental_health" },
     { label: "Practical Needs Help", scenario: "practical_social" },
@@ -62,7 +124,7 @@ export const WelcomeGlowBox = ({ sessionId, authToken }: WelcomeGlowBoxProps) =>
   ];
 
   return (
-    <div className="relative flex flex-col w-full max-w-[min(90vw,70rem)] mx-auto mt-0 px-4 sm:px-6 md:px-12 py-2 h-[80vh] sm:h-[75vh] md:h-[70vh] max-h-[calc(100vh-12rem)] transition-all duration-300 border border-transparent rounded-3xl hover:bg-transparent hover:border-teal-700/40">
+    <div className="relative flex flex-col w-full max-w-[min(90vw,70rem)] mx-auto mt-0 px-4 lg:px-12 py-2 h-[80vh] lg:h-[70vh] max-h-[calc(100vh-6rem)] lg:max-h-[calc(100vh-12rem)] transition-all duration-300 border border-transparent rounded-3xl hover:bg-transparent hover:border-teal-700/40">
       {/* REMOVE COMMENT TO ENABLE LANGUAGE BUTTON */}
       {/* {messages.length === 0 && (
         <div className="absolute top-4 right-6">
@@ -75,14 +137,21 @@ export const WelcomeGlowBox = ({ sessionId, authToken }: WelcomeGlowBoxProps) =>
           </button>
         </div>
       )} */}
-      {/* Message Area (flexible height, scrolls when overflowing) */}
       <div ref={chatRef} className="flex-1 w-full overflow-y-auto px-4 py-4 flex flex-col">
         <div className={`space-y-4 ${messages.length === 0 ? 'flex-1 flex items-center justify-center' : ''}`}>
             {messages.length === 0 ? (
               <h2 className="text-2xl font-medium text-center text-teal-900/80">
-                Hello, you're safe here. I'm here to listen and provide support.
-                <br />
-                How can I help you today?
+                <span className="2xl:hidden">
+                  Hello, you're safe here.<br />
+                  I'm here to listen and provide support.<br />
+                  How can I help you today?
+                </span>
+                <span className="hidden 2xl:block">
+                  Hello, you're safe here.{' '}
+                  <span className="inline-block whitespace-nowrap">I'm here to listen and provide support.</span>
+                  <br />
+                  How can I help you today?
+                </span>
               </h2>
             ) : (
               <>
@@ -170,16 +239,24 @@ export const WelcomeGlowBox = ({ sessionId, authToken }: WelcomeGlowBoxProps) =>
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') sendMessage(); }}
             placeholder="How can I help you safely?"
-            className="w-full bg-white/40 border-none rounded-xl py-4 md:py-5 pl-4 pr-12 text-sm focus:ring-2 focus:ring-teal-700/40"
+            className="w-full bg-white/40 border-none rounded-xl py-4 md:py-5 pl-4 pr-20 text-sm focus:ring-2 focus:ring-teal-700/40"
           />
-          {/* REMOVE COMMENT TO ENABLE MICROPHONE BUTTON */}
-          {/* <button
-            onClick={() => {}}
-            className="absolute right-12 p-1.5 bg-teal-600 text-white rounded-full hover:bg-teal-700 transition-colors"
-            aria-label="Voice input"
+          <button
+            onMouseDown={startRecording}
+            onMouseUp={stopRecording}
+            onTouchStart={startRecording}
+            onTouchEnd={stopRecording}
+            disabled={isLoading}
+            className={`absolute right-12 p-1.5 rounded-full transition-all ${
+              isRecording
+                ? "bg-red-500 text-white animate-pulse scale-110"
+                : "bg-teal-600 text-white hover:bg-teal-700"
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+            aria-label="Hold to record voice message"
+            title="Hold to talk"
           >
-            <Mic size={18} className="text-teal-50" />
-          </button> */}
+            <Mic size={18} className={isRecording ? "fill-current" : ""} />
+          </button>
           <button
             onClick={() => sendMessage()}
             disabled={!input.trim() || isLoading}

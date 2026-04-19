@@ -128,6 +128,26 @@ Resources:
       Roles:
         - !Ref LambdaExecutionRole
 
+  LambdaVoicePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: VoiceAccess
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - polly:SynthesizeSpeech
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - transcribe:StartTranscriptionJob
+              - transcribe:GetTranscriptionJob
+              - transcribe:DeleteTranscriptionJob
+            Resource: "*"
+      Roles:
+        - !Ref LambdaExecutionRole
+
   LambdaDynamoDBAccessPolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -203,6 +223,12 @@ Resources:
             RestApiId: !Ref CareBotApi
             Path: /categories
             Method: GET
+        VoiceChatApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CareBotApi
+            Path: /voice-chat
+            Method: POST
         CorsApi:
           Type: Api
           Properties:
@@ -220,6 +246,9 @@ Resources:
     Properties:
       Name: !Sub "care-compass-api-${Environment}"
       StageName: !Ref Environment
+      BinaryMediaTypes:
+        - "multipart/form-data"
+        - "audio/*"
       Cors:
         AllowMethods: "'GET,POST,OPTIONS'"
         AllowHeaders: "'Content-Type,Authorization,X-Session-ID'"

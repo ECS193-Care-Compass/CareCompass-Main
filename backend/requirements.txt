@@ -7,6 +7,7 @@ requests>=2.31.0
 PyJWT[crypto]>=2.8.0
 fastapi
 uvicorn
+python-multipart>=0.0.9
 boto3==1.26.137
 apscheduler>=3.10.0
 websockets>=13.0.0,<15.1.0

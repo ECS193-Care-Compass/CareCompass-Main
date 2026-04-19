@@ -43,9 +43,11 @@ const resources: Resource[] = [
 export function ResourcesSection() {
   return (
     <div className="max-w-5xl mx-auto">
-      <h2 className="text-3xl font-semibold text-gray-900 mb-8 text-center">
-        Local Support Resources (Sacramento Area)
+      <h2 className="text-lg lg:text-3xl font-semibold text-gray-900 mb-1 lg:mb-8 text-center">
+        <span className="lg:hidden">Local Support Resources</span>
+        <span className="hidden lg:inline">Local Support Resources (Sacramento Area)</span>
       </h2>
+      <p className="text-sm text-gray-500 text-center mb-8 lg:hidden">Sacramento Area</p>
       
       <div className="grid md:grid-cols-2 gap-6">
         {resources.map((resource) => (
@@ -96,12 +98,14 @@ export function ResourcesSection() {
           National Resources
         </h3>
         <div className="space-y-2">
-          <div className="flex items-center gap-2 text-gray-800">
-            <Phone className="w-4 h-4" />
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-gray-800">
             <span className="font-medium">National Domestic Violence Hotline:</span>
-            <a href="tel:1-800-799-7233" className="hover:underline">
-              1-800-799-7233
-            </a>
+            <span className="flex items-center gap-1 shrink-0">
+              <Phone className="w-4 h-4" />
+              <a href="tel:1-800-799-7233" className="hover:underline">
+                1-800-799-7233
+              </a>
+            </span>
           </div>
           <p className="text-sm text-gray-600 ml-6">Available 24/7 in over 200 languages</p>
         </div>
