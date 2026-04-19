@@ -117,7 +117,7 @@ class BackupScheduler:
             temp_backup_path.unlink()
             
             if success:
-                logger.info(f"✓ ChromaDB backup successful: {s3_key} ({file_size_mb:.2f}MB)")
+                logger.info(f"[PASS] ChromaDB backup successful: {s3_key} ({file_size_mb:.2f}MB)")
                 
                 # Keep only last 5 backups
                 self._cleanup_old_backups()

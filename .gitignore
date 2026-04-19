@@ -70,6 +70,11 @@ out/
 # AWS/SAM
 .aws-sam/
 
+# GCP Credentials (NEVER COMMIT)
+gcp-key.json
+*.json.key
+service-account*.json
+
 # Test artifacts and outputs
 response.json
 temp_payload.json
@@ -86,6 +91,7 @@ logs/
 .env
 .env.local
 .env.*.local
+
 *.secret
 secrets.yaml
 aws_credentials

@@ -1,6 +1,7 @@
 """
 AWS Lambda Handler for CARE Bot
 Converts FastAPI endpoints to Lambda handler for API Gateway integration
+Uses Vertex AI for LLM and embeddings
 """
 import json
 import logging
@@ -9,10 +10,27 @@ from typing import Dict, Any, Optional
 import sys
 from datetime import datetime
 import boto3
+import base64
 
 # Configure logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
+# ==================== GCP Credentials Setup ====================
+# Decode base64 GCP credentials and write to /tmp for Vertex AI
+gcp_creds_b64 = os.environ.get("GCP_CREDENTIALS_BASE64")
+if gcp_creds_b64:
+    try:
+        gcp_creds_json = base64.b64decode(gcp_creds_b64).decode("utf-8")
+        gcp_key_path = "/tmp/gcp-key.json"
+        with open(gcp_key_path, "w") as f:
+            f.write(gcp_creds_json)
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = gcp_key_path
+        logger.info("GCP credentials written to /tmp/gcp-key.json")
+    except Exception as e:
+        logger.error(f"Failed to decode GCP credentials: {e}")
+else:
+    logger.warning("GCP_CREDENTIALS_BASE64 not set - Vertex AI may fail")
 
 # Initialize S3 for logging interactions
 s3_client = boto3.client('s3', region_name='us-east-1')

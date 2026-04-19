@@ -2,11 +2,12 @@
 
 ## Prerequisites
 
-- **Python 3.11+**
+- **Python 3.12** (recommended) — **Do NOT use Python 3.13** (has known bugs with google-cloud-aiplatform SDK)
 - **Node.js 18+**
-- **Google Gemini API Key** 
+- **Google Cloud Platform account**
 - **Supabase project** 
-- **AWS account** 
+- **AWS account**
+
 
 ## 1. Setup Backend
 
@@ -23,11 +24,37 @@ pip install -r requirements.txt
 
 ## 2. Configure Environment
 
-Create a `.env` file in the **project root**:
+Create a `.env` file in the **project root**.
+
+### Step 1: Enable Vertex AI API
+
+1. Go to [GCP Console](https://console.cloud.google.com/)
+2. Select or create a project
+3. Navigate to **APIs & Services** → **Enable APIs and Services**
+4. Search for "Vertex AI API" and click **Enable**
+
+### Step 2: Create a Service Account
+
+1. Go to **IAM & Admin** → **Service Accounts**
+2. Click **Create Service Account**
+3. Name it (e.g., `care-compass-vertex`)
+4. Grant the **Vertex AI User** role
+5. Click **Done**
+
+### Step 3: Generate a JSON Key
+
+1. Click on the service account you just created
+2. Go to the **Keys** tab
+3. Click **Add Key** → **Create new key** → **JSON**
+4. Save the downloaded file as `gcp-key.json` in the project root
+
+### Step 4: Configure `.env`
 
 ```env
-# Required
-GOOGLE_API_KEY=your_gemini_api_key_here
+# Vertex AI (required)
+GCP_PROJECT_ID=your-gcp-project-id
+GCP_LOCATION=us-central1
+GOOGLE_APPLICATION_CREDENTIALS=C:\full\path\to\CareCompass\gcp-key.json
 
 # Supabase (authentication)
 SUPABASE_URL=https://your-project-id.supabase.co
@@ -39,7 +66,17 @@ AWS_SECRET_ACCESS_KEY=your_aws_secret_key
 AWS_REGION=us-east-1
 ```
 
-Optional settings (defaults shown):
+Instead of a service account key, you can authenticate with your personal Google account:
+
+```bash
+gcloud auth application-default login
+```
+
+This creates credentials at `~/.config/gcloud/application_default_credentials.json` that the SDK will use automatically. You still need to set `GCP_PROJECT_ID` in your `.env`.
+
+### Optional Settings
+
+Defaults shown:
 
 ```env
 MODEL_NAME=gemini-2.5-flash
@@ -53,8 +90,7 @@ DYNAMODB_TABLE_NAME=care-compass-conversations
 DYNAMODB_TTL_MINUTES=30
 MAX_HISTORY_TURNS=10
 ```
-
-## 3. Setup Frontend Environment
+# 3. Setup Frontend Environment
 
 Create a `.env` file in `chatbot-frontend/`:
 
@@ -97,7 +133,7 @@ npm run build:linux  # Linux
 
 ```powershell
 # Windows (PowerShell) — requires AWS CLI v2
-.\aws\deployment\deploy.ps1 -Environment dev -AWSProfile your_profile -GoogleApiKey "your_key" -SupabaseJwtSecret "your_secret"
+.\aws\deployment\deploy.ps1 -Environment dev -AWSProfile your_profile -GCPProjectId "your-project-id" -GCPKeyFile "C:\path\to\gcp-key.json" -SupabaseJwtSecret "your_secret"
 ```
 
 Before deploying, upload the vectorstore to S3:
@@ -119,7 +155,11 @@ python -m pytest tests/
 | Problem | Fix |
 |---------|-----|
 | Backend won't start | Check if port 8000 is already in use |
+| Backend hangs on import | You're likely using Python 3.13. Delete venv and recreate with Python 3.12 |
 | Slow first startup | Vectorstore is building via Gemini embedding API — wait for it to finish |
 | Frontend can't reach backend | Make sure backend is running: `curl http://localhost:8000/health` |
 | Sign up "Failed to fetch" | Check Supabase env vars in `chatbot-frontend/.env` and CSP in `src/main/index.ts` |
 | DynamoDB unavailable | Check AWS credentials in `.env` — falls back to in-memory history gracefully |
+| 429 Quota Exceeded | You've hit Vertex AI rate limits. Wait a moment and retry |
+| Vertex AI auth error | Check `GOOGLE_APPLICATION_CREDENTIALS` path and service account permissions |
+| GCP project mismatch | Ensure `GCP_PROJECT_ID` in `.env` matches the project ID in `gcp-key.json` |

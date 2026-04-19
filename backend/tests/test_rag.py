@@ -10,7 +10,7 @@ r = requests.post('http://localhost:8000/chat', json={
 })
 resp = r.json()
 
-print("\n✅ Response from RAG Backend:")
+print("\n[OK] Response from RAG Backend:")
 print("-" * 70)
 print(resp['response'][:500])
 print("...")

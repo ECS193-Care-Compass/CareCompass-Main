@@ -30,13 +30,13 @@ def print_section(title):
     print(f"{Colors.BOLD}{Colors.CYAN}{'='*70}{Colors.END}")
 
 def success(msg):
-    print(f"{Colors.GREEN}✓ {msg}{Colors.END}")
+    print(f"{Colors.GREEN}[PASS] {msg}{Colors.END}")
 
 def error(msg):
-    print(f"{Colors.RED}✗ {msg}{Colors.END}")
+    print(f"{Colors.RED}[FAIL] {msg}{Colors.END}")
 
 def info(msg):
-    print(f"{Colors.CYAN}  → {msg}{Colors.END}")
+    print(f"{Colors.CYAN}  -> {msg}{Colors.END}")
 
 # Test tracking
 passed = 0
@@ -320,7 +320,7 @@ if failed > 0:
 if success_rate >= 80:
     success(f"Success rate: {success_rate:.1f}%")
 elif success_rate >= 50:
-    print(f"{Colors.YELLOW}⚠ Success rate: {success_rate:.1f}%{Colors.END}")
+    print(f"{Colors.YELLOW}[WARN] Success rate: {success_rate:.1f}%{Colors.END}")
 else:
     error(f"Success rate: {success_rate:.1f}%")
 

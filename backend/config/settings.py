@@ -1,6 +1,3 @@
-"""
-Configuration settings for CARE Bot
-"""
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -25,11 +22,11 @@ if not os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
     for directory in [DATA_DIR, RAW_DATA_DIR, PROCESSED_DATA_DIR, VECTORSTORE_DIR]:
         directory.mkdir(parents=True, exist_ok=True)
 
-# API Configuration
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+# Vertex AI Configuration
+GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "")
+GCP_LOCATION = os.getenv("GCP_LOCATION", "us-central1")
 
 # Embedding Configuration
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "gemini-embedding-001")
 CHUNK_SIZE = 500
 CHUNK_OVERLAP = 50
 

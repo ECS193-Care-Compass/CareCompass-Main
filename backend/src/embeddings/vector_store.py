@@ -1,36 +1,42 @@
 """
 Vector store management using ChromaDB
 Supports both local and AWS Lambda environments
-Uses Google Gemini API for embeddings
+Uses Vertex AI for embeddings
 """
 from typing import List, Dict, Any, Optional
 import chromadb
 from chromadb.config import Settings
 from chromadb.api.types import EmbeddingFunction, Documents, Embeddings
-from google import genai
 import os
 import time
 import tempfile
 import zipfile
-from config.settings import VECTORSTORE_DIR, EMBEDDING_MODEL, TOP_K, GOOGLE_API_KEY
+import vertexai
+from vertexai.language_models import TextEmbeddingModel
+from config.settings import (
+    VECTORSTORE_DIR, TOP_K, GCP_PROJECT_ID, GCP_LOCATION
+)
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 
 class GeminiEmbeddingFunction(EmbeddingFunction):
-    """ChromaDB embedding function using Google Gemini API"""
+    """ChromaDB embedding function using Vertex AI"""
 
-    def __init__(self, api_key: str = GOOGLE_API_KEY, model_name: str = EMBEDDING_MODEL):
-        if not api_key:
-            raise ValueError("GOOGLE_API_KEY must be set for Gemini embeddings")
-        self._client = genai.Client(api_key=api_key)
-        self._model_name = model_name
+    def __init__(self):
+        if not GCP_PROJECT_ID:
+            raise ValueError("GCP_PROJECT_ID must be set in environment variables")
+        vertexai.init(project=GCP_PROJECT_ID, location=GCP_LOCATION)
+        self._model = TextEmbeddingModel.from_pretrained("text-embedding-004")
+        logger.info("Using Vertex AI embeddings (text-embedding-004)")
 
     def __call__(self, input: Documents) -> Embeddings:
-        """Embed a list of documents using Gemini embedding API with rate limiting"""
+        """Embed a list of documents using Vertex AI with rate limiting"""
         results = []
-        batch_size = 100
+        # Vertex AI has 20k token limit per batch, use smaller batches to stay safe
+        # Average chunk is ~100 tokens, so 50 docs ~= 5000 tokens (safe margin)
+        batch_size = 50
         total_batches = (len(input) + batch_size - 1) // batch_size
 
         for batch_idx, i in enumerate(range(0, len(input), batch_size)):
@@ -39,11 +45,8 @@ class GeminiEmbeddingFunction(EmbeddingFunction):
             # Retry with exponential backoff on rate limit errors
             for attempt in range(5):
                 try:
-                    response = self._client.models.embed_content(
-                        model=self._model_name,
-                        contents=batch,
-                    )
-                    results.extend([list(e.values) for e in response.embeddings])
+                    embeddings = self._model.get_embeddings(batch)
+                    results.extend([e.values for e in embeddings])
                     break
                 except Exception as e:
                     if "429" in str(e) and attempt < 4:
@@ -55,7 +58,7 @@ class GeminiEmbeddingFunction(EmbeddingFunction):
 
             if batch_idx < total_batches - 1:
                 logger.info(f"Embedded batch {batch_idx + 1}/{total_batches}, pausing for rate limit...")
-                time.sleep(1)
+                time.sleep(0.5)
 
         return results
 
@@ -254,7 +257,7 @@ class VectorStore:
         return {
             "collection_name": self.collection_name,
             "document_count": count,
-            "embedding_model": EMBEDDING_MODEL
+            "embedding_model": "text-embedding-004"
         }
 
     def reset_collection(self) -> None:

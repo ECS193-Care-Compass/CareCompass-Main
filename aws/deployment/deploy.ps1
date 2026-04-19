@@ -1,6 +1,6 @@
 # PowerShell deployment script for CARE Compass AWS Lambda (Container Image)
 # Uses Docker + AWS CLI (no SAM CLI required)
-# Usage: .\deploy.ps1 -Environment dev -GoogleApiKey "xxx"
+# Usage: .\deploy.ps1 -Environment dev -GCPProjectId "your-project" -GCPKeyFile "path\to\gcp-key.json"
 
 param(
     [Parameter(Mandatory=$true)]
@@ -8,7 +8,13 @@ param(
     [string]$Environment,
 
     [Parameter(Mandatory=$true)]
-    [string]$GoogleApiKey,
+    [string]$GCPProjectId,
+
+    [Parameter(Mandatory=$true)]
+    [string]$GCPKeyFile,
+
+    [Parameter(Mandatory=$false)]
+    [string]$GCPLocation = "us-central1",
 
     [Parameter(Mandatory=$false)]
     [string]$AWSProfile = "default",
@@ -159,7 +165,14 @@ Write-Host "  Image: $fullImageUri" -ForegroundColor Gray
 Write-Host "  (This may take several minutes)" -ForegroundColor Gray
 
 $ErrorActionPreference = "Continue"
-$deployOutput = & aws cloudformation deploy --template-file $templatePath --stack-name $stackName --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --parameter-overrides "Environment=$Environment" "GoogleAPIKey=$GoogleApiKey" "LambdaMemory=$LambdaMemory" "LambdaTimeout=$LambdaTimeout" "SupabaseJwtSecret=$SupabaseJwtSecret" "SupabaseUrl=$SupabaseUrl" "ImageUri=$fullImageUri" --profile $AWSProfile --region $AWSRegion --no-fail-on-empty-changeset 2>&1
+# Read and base64-encode GCP credentials
+if (-not (Test-Path $GCPKeyFile)) {
+    Write-Host "x GCP key file not found: $GCPKeyFile" -ForegroundColor Red
+    exit 1
+}
+$gcpCredentialsBase64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes((Get-Content $GCPKeyFile -Raw)))
+
+$deployOutput = & aws cloudformation deploy --template-file $templatePath --stack-name $stackName --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --parameter-overrides "Environment=$Environment" "GCPProjectId=$GCPProjectId" "GCPLocation=$GCPLocation" "GCPCredentialsBase64=$gcpCredentialsBase64" "LambdaMemory=$LambdaMemory" "LambdaTimeout=$LambdaTimeout" "SupabaseJwtSecret=$SupabaseJwtSecret" "SupabaseUrl=$SupabaseUrl" "ImageUri=$fullImageUri" --profile $AWSProfile --region $AWSRegion --no-fail-on-empty-changeset 2>&1
 $deployExitCode = $LASTEXITCODE
 $ErrorActionPreference = "Stop"
 

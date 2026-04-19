@@ -17,22 +17,22 @@ print("=" * 60)
 print("\n1. Initializing S3 Manager...")
 try:
     s3_manager = S3Manager(region='us-east-1')
-    print(f"✓ Documents bucket: {s3_manager.documents_bucket}")
-    print(f"✓ Processed bucket: {s3_manager.processed_bucket}")
-    print(f"✓ VectorDB bucket: {s3_manager.vectordb_bucket}")
+    print(f"[PASS] Documents bucket: {s3_manager.documents_bucket}")
+    print(f"[PASS] Processed bucket: {s3_manager.processed_bucket}")
+    print(f"[PASS] VectorDB bucket: {s3_manager.vectordb_bucket}")
 except Exception as e:
-    print(f"✗ FAILED: {e}")
+    print(f"[FAIL] FAILED: {e}")
     sys.exit(1)
 
 # Test listing documents
 print("\n2. Testing list_documents...")
 try:
     docs = s3_manager.list_documents(bucket=s3_manager.documents_bucket)
-    print(f"✓ Found {len(docs)} documents")
+    print(f"[PASS] Found {len(docs)} documents")
     if docs:
         print(f"  First document: {docs[0]['key']}")
 except Exception as e:
-    print(f"✗ FAILED: {e}")
+    print(f"[FAIL] FAILED: {e}")
 
 # Test upload and download
 print("\n3. Testing upload_document...")
@@ -50,14 +50,14 @@ try:
     )
     
     if success:
-        print("✓ Upload successful")
+        print("[PASS] Upload successful")
     else:
-        print("✗ Upload failed")
+        print("[FAIL] Upload failed")
     
     # Clean up local file
     os.unlink(test_file)
 except Exception as e:
-    print(f"✗ FAILED: {e}")
+    print(f"[FAIL] FAILED: {e}")
 
 # Test download
 print("\n4. Testing download_document...")
@@ -72,13 +72,13 @@ try:
     if success:
         with open(download_path, 'r') as f:
             content = f.read()
-        print(f"✓ Download successful")
+        print(f"[PASS] Download successful")
         print(f"  Content: {content[:50]}...")
         os.unlink(download_path)
     else:
-        print("✗ Download failed")
+        print("[FAIL] Download failed")
 except Exception as e:
-    print(f"✗ FAILED: {e}")
+    print(f"[FAIL] FAILED: {e}")
 
 # Test get object info
 print("\n5. Testing get_object_info...")
@@ -89,13 +89,13 @@ try:
     )
     
     if info:
-        print(f"✓ Object info retrieved")
+        print(f"[PASS] Object info retrieved")
         print(f"  Size: {info['size']} bytes")
         print(f"  Last modified: {info['last_modified']}")
     else:
-        print("✗ Object not found")
+        print("[FAIL] Object not found")
 except Exception as e:
-    print(f"✗ FAILED: {e}")
+    print(f"[FAIL] FAILED: {e}")
 
 # Test signed URL
 print("\n6. Testing create_signed_url...")
@@ -107,12 +107,12 @@ try:
     )
     
     if url:
-        print(f"✓ Signed URL created")
+        print(f"[PASS] Signed URL created")
         print(f"  URL: {url[:80]}...")
     else:
-        print("✗ Failed to create signed URL")
+        print("[FAIL] Failed to create signed URL")
 except Exception as e:
-    print(f"✗ FAILED: {e}")
+    print(f"[FAIL] FAILED: {e}")
 
 print("\n" + "=" * 60)
 print("S3 TESTS COMPLETED")

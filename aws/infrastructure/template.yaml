@@ -16,10 +16,19 @@ Parameters:
       - prod
     Description: Deployment environment
 
-  GoogleAPIKey:
+  GCPProjectId:
+    Type: String
+    Description: Google Cloud Project ID for Vertex AI
+
+  GCPLocation:
+    Type: String
+    Default: us-central1
+    Description: GCP region for Vertex AI
+
+  GCPCredentialsBase64:
     Type: String
     NoEcho: true
-    Description: Google Generative AI API Key
+    Description: Base64-encoded GCP service account JSON key
 
   LambdaMemory:
     Type: Number
@@ -153,7 +162,9 @@ Resources:
         - x86_64
       Environment:
         Variables:
-          GOOGLE_API_KEY: !Ref GoogleAPIKey
+          GCP_PROJECT_ID: !Ref GCPProjectId
+          GCP_LOCATION: !Ref GCPLocation
+          GCP_CREDENTIALS_BASE64: !Ref GCPCredentialsBase64
           S3_DOCUMENTS_BUCKET: !Sub "care-compass-documents-${AWS::AccountId}-${Environment}"
           S3_VECTORDB_BUCKET: !Sub "care-compass-vectordb-${AWS::AccountId}-${Environment}"
           S3_LOGS_BUCKET: !Sub "care-compass-logs-${AWS::AccountId}-${Environment}"
