@@ -70,7 +70,7 @@ out/
 # AWS/SAM
 .aws-sam/
 
-# GCP Credentials (NEVER COMMIT)
+# GCP Credentials 
 gcp-key.json
 *.json.key
 service-account*.json

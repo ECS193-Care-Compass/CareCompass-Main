@@ -90,6 +90,28 @@ Resources:
         - Key: Project
           Value: CareCompass
 
+  ResponseCacheTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "care-compass-response-cache-${Environment}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: query_hash
+          AttributeType: S
+      KeySchema:
+        - AttributeName: query_hash
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: CareCompass
+
   # ==================== IAM ROLE ====================
 
   LambdaExecutionRole:
@@ -162,8 +184,10 @@ Resources:
               - dynamodb:DeleteItem
               - dynamodb:Query
               - dynamodb:BatchWriteItem
+              - dynamodb:Scan
             Resource:
               - !GetAtt ConversationHistoryTable.Arn
+              - !GetAtt ResponseCacheTable.Arn
       Roles:
         - !Ref LambdaExecutionRole
 
