@@ -61,7 +61,7 @@ export function useAuth() {
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'INITIAL_SESSION') return
+      if (event === 'INITIAL_SESSION') return undefined
       if (session?.user) {
         // Clear guest timer if user signs in
         if (timerRef.current) clearInterval(timerRef.current)
@@ -95,7 +95,7 @@ export function useAuth() {
       if (timerRef.current) clearInterval(timerRef.current)
       setGuestTimeLeft(null)
       setShowWarning(false)
-      return
+      return undefined
     }
 
     startTimeRef.current = Date.now()

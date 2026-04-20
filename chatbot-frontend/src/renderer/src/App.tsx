@@ -10,7 +10,7 @@ export default function App(): JSX.Element {
     user, sessionId, isGuest, isLoading, 
     signInWithEmail, signUpWithEmail, signOut, 
     continueAsGuest, getAuthHeader,
-    guestTimeLeft, showWarning, setShowWarning, formatTime
+    guestTimeLeft, showWarning, formatTime
   } = useAuth()
 
   if (isLoading) {
@@ -35,23 +35,13 @@ export default function App(): JSX.Element {
 
   return (
     <div className="w-full bg-[#a1d7d6] font-sans text-teal-950 overflow-x-hidden">
-      <QuickExitBar onSignOut={signOut} showSignOut={!isGuest} />
-      {/* Guest session warning banner */}
-      {isGuest && showWarning && guestTimeLeft !== null && (
-        <div className="fixed top-14 sm:top-16 left-0 w-full z-40 bg-red-500 text-white px-4 py-2 flex items-center justify-between text-sm">
-          <span>
-            Your session ends in{' '}
-            <span className="font-bold">{formatTime(guestTimeLeft)}</span>
-            {' '}— sign up to keep your support going
-          </span>
-          <button
-            onClick={() => setShowWarning(false)}
-            className="text-white/80 hover:text-white text-xs shrink-0 ml-4"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
+      <QuickExitBar
+        onSignOut={signOut}
+        showSignOut={!isGuest}
+        guestTimeLeft={guestTimeLeft}
+        showWarning={showWarning}
+        formatTime={formatTime}
+      />
       <section className="pt-12 sm:pt-14 relative flex flex-col items-center justify-center min-h-screen w-full overflow-hidden px-2 sm:px-4">
         <WelcomeGlowBox sessionId={sessionId} authToken={getAuthHeader()} />
       </section>

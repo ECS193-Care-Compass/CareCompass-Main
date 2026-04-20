@@ -12,7 +12,12 @@ interface Message {
   audio?: string;
 }
 
-export const WelcomeGlowBox = () => {
+interface WelcomeGlowBoxProps {
+  sessionId: string
+  authToken: string | undefined
+}
+
+export const WelcomeGlowBox = ({ sessionId: _sessionId, authToken: _authToken }: WelcomeGlowBoxProps) => {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);

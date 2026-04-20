@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ExternalLink, MapPin, Phone, Shield, Info, MessageSquare, Star } from 'lucide-react';
+import { ExternalLink, MapPin, Phone, Shield, Info } from 'lucide-react';
 
 interface Resource {
   name: string;
@@ -45,15 +45,7 @@ const resources: Resource[] = [
 ];
 
 export function ResourcesSection() {
-  const [feedbackRating, setFeedbackRating] = useState<number | null>(null)
-  const [feedbackText, setFeedbackText] = useState('')
-  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false)
   const [showHowItWorks, setShowHowItWorks] = useState(false)
-
-  const handleFeedbackSubmit = () => {
-    if (!feedbackRating) return
-    setFeedbackSubmitted(true)
-  }
 
   return (
     <div className="max-w-5xl mx-auto">
