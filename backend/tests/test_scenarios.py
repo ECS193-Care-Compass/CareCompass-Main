@@ -16,9 +16,9 @@ for query, expected in tests:
         response = requests.post('http://localhost:8000/chat', json={'query': query})
         data = response.json()
         response_start = data["response"][:100].replace('\n', ' ')
-        print(f'✓ Query: {query[:50]}...')
+        print(f'[PASS] Query: {query[:50]}...')
         print(f'  Response: {response_start}...')
         print(f'  Scenario: {data.get("scenario", "N/A")}')
         print()
     except Exception as e:
-        print(f'✗ Error testing query: {e}\n')
+        print(f'[FAIL] Error testing query: {e}\n')

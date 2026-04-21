@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Bash deployment script for CARE Compass AWS Lambda + S3
-# Usage: ./deploy.sh -e dev -k "your_api_key"
+# Usage: ./deploy.sh -e dev -p "your-gcp-project" -k "/path/to/gcp-key.json"
 
 set -e
 
@@ -14,7 +14,9 @@ NC='\033[0m' # No Color
 
 # Default values
 ENVIRONMENT=""
-GOOGLE_API_KEY=""
+GCP_PROJECT_ID=""
+GCP_KEY_FILE=""
+GCP_LOCATION="us-central1"
 AWS_PROFILE="default"
 AWS_REGION="us-east-1"
 LAMBDA_MEMORY=1024
@@ -27,11 +29,19 @@ while [[ $# -gt 0 ]]; do
             ENVIRONMENT="$2"
             shift 2
             ;;
-        -k|--api-key)
-            GOOGLE_API_KEY="$2"
+        -p|--project-id)
+            GCP_PROJECT_ID="$2"
             shift 2
             ;;
-        -p|--profile)
+        -k|--key-file)
+            GCP_KEY_FILE="$2"
+            shift 2
+            ;;
+        -l|--location)
+            GCP_LOCATION="$2"
+            shift 2
+            ;;
+        --profile)
             AWS_PROFILE="$2"
             shift 2
             ;;
@@ -55,19 +65,30 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Validate required parameters
-if [ -z "$ENVIRONMENT" ] || [ -z "$GOOGLE_API_KEY" ]; then
+if [ -z "$ENVIRONMENT" ] || [ -z "$GCP_PROJECT_ID" ] || [ -z "$GCP_KEY_FILE" ]; then
     echo -e "${RED}Error: Missing required parameters${NC}"
-    echo "Usage: $0 -e dev|prod -k 'your_api_key' [options]"
+    echo "Usage: $0 -e dev|prod -p 'gcp-project-id' -k '/path/to/gcp-key.json' [options]"
     echo ""
     echo "Options:"
     echo "  -e, --environment dev|prod   Deployment environment (required)"
-    echo "  -k, --api-key KEY            Google API key (required)"
-    echo "  -p, --profile PROFILE        AWS profile to use (default: default)"
+    echo "  -p, --project-id ID          GCP project ID (required)"
+    echo "  -k, --key-file PATH          Path to GCP service account JSON key (required)"
+    echo "  -l, --location REGION        GCP location (default: us-central1)"
+    echo "  --profile PROFILE            AWS profile to use (default: default)"
     echo "  -r, --region REGION          AWS region (default: us-east-1)"
     echo "  -m, --memory MB              Lambda memory (default: 1024)"
     echo "  -t, --timeout SEC            Lambda timeout (default: 300)"
     exit 1
 fi
+
+# Validate GCP key file exists
+if [ ! -f "$GCP_KEY_FILE" ]; then
+    echo -e "${RED}Error: GCP key file not found: $GCP_KEY_FILE${NC}"
+    exit 1
+fi
+
+# Base64 encode GCP credentials
+GCP_CREDENTIALS_BASE64=$(base64 -w0 "$GCP_KEY_FILE")
 
 echo -e "${CYAN}================================${NC}"
 echo -e "${CYAN}CARE Compass AWS Deployment${NC}"
@@ -86,10 +107,10 @@ PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 # Step 1: Validate AWS credentials
 echo -e "\n${CYAN}[1/5] Validating AWS credentials...${NC}"
 if ! aws sts get-caller-identity --profile "$AWS_PROFILE" --region "$AWS_REGION" > /dev/null 2>&1; then
-    echo -e "${RED}✗ Error: AWS credentials not configured or invalid${NC}"
+    echo -e "${RED}[FAIL] Error: AWS credentials not configured or invalid${NC}"
     exit 1
 fi
-echo -e "${GREEN}✓ AWS credentials valid${NC}"
+echo -e "${GREEN}[PASS] AWS credentials valid${NC}"
 
 ACCOUNT_ID=$(aws sts get-caller-identity --profile "$AWS_PROFILE" --region "$AWS_REGION" --query Account --output text)
 echo -e "  Account ID: $(tput setaf 8)$ACCOUNT_ID$(tput sgr0)"
@@ -101,10 +122,10 @@ if ! aws cloudformation validate-template \
     --template-body "file://$TEMPLATE_PATH" \
     --profile "$AWS_PROFILE" \
     --region "$AWS_REGION" > /dev/null 2>&1; then
-    echo -e "${RED}✗ Template validation failed${NC}"
+    echo -e "${RED}[FAIL] Template validation failed${NC}"
     exit 1
 fi
-echo -e "${GREEN}✓ Template is valid${NC}"
+echo -e "${GREEN}[PASS] Template is valid${NC}"
 
 # Step 3: Build Lambda package
 echo -e "\n${CYAN}[3/5] Building Lambda deployment package...${NC}"
@@ -135,7 +156,7 @@ cp "$PROJECT_ROOT/main.py" "$BUILD_DIR/"
 echo -e "  Installing Python dependencies..."
 pip install -r "$LAMBDA_DIR/requirements.txt" -t "$BUILD_DIR" --quiet
 
-echo -e "${GREEN}✓ Lambda package built successfully${NC}"
+echo -e "${GREEN}[PASS] Lambda package built successfully${NC}"
 
 # Step 4: Deploy with SAM
 echo -e "\n${CYAN}[4/5] Deploying with AWS SAM...${NC}"
@@ -159,18 +180,20 @@ sam deploy \
     --region "$AWS_REGION" \
     --parameter-overrides \
         Environment="$ENVIRONMENT" \
-        GoogleAPIKey="$GOOGLE_API_KEY" \
+        GCPProjectId="$GCP_PROJECT_ID" \
+        GCPLocation="$GCP_LOCATION" \
+        GCPCredentialsBase64="$GCP_CREDENTIALS_BASE64" \
         LambdaMemory="$LAMBDA_MEMORY" \
         LambdaTimeout="$LAMBDA_TIMEOUT" \
     --no-fail-on-empty-changeset \
     --no-confirm-changeset
 
 if [ $? -ne 0 ]; then
-    echo -e "${RED}✗ SAM deployment failed${NC}"
+    echo -e "${RED}[FAIL] SAM deployment failed${NC}"
     exit 1
 fi
 
-echo -e "${GREEN}✓ SAM deployment successful${NC}"
+echo -e "${GREEN}[PASS] SAM deployment successful${NC}"
 
 # Step 5: Get stack outputs
 echo -e "\n${CYAN}[5/5] Retrieving deployment outputs...${NC}"

@@ -2,8 +2,8 @@
 Supabase JWT verification for session management.
 
 Two modes:
-  - Authenticated: JWT in Authorization header → extract user ID as session_id
-  - Guest: No JWT → use session_id from request body (frontend generates guest-<uuid>)
+  - Authenticated: JWT in Authorization header -> extract user ID as session_id
+  - Guest: No JWT -> use session_id from request body (frontend generates guest-<uuid>)
 """
 
 import jwt

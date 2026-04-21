@@ -28,16 +28,16 @@ def print_section(title):
     print(f"{Colors.BOLD}{Colors.OKCYAN}{'='*70}{Colors.ENDC}")
 
 def print_success(msg):
-    print(f"{Colors.OKGREEN}✓ {msg}{Colors.ENDC}")
+    print(f"{Colors.OKGREEN}[PASS] {msg}{Colors.ENDC}")
 
 def print_error(msg):
-    print(f"{Colors.FAIL}✗ {msg}{Colors.ENDC}")
+    print(f"{Colors.FAIL}[FAIL] {msg}{Colors.ENDC}")
 
 def print_warning(msg):
-    print(f"{Colors.WARNING}⚠ {msg}{Colors.ENDC}")
+    print(f"{Colors.WARNING}[WARN] {msg}{Colors.ENDC}")
 
 def print_info(msg):
-    print(f"{Colors.OKCYAN}  → {msg}{Colors.ENDC}")
+    print(f"{Colors.OKCYAN}  -> {msg}{Colors.ENDC}")
 
 # Initialize
 print_section("S3 COMPREHENSIVE EDGE CASE TESTING")

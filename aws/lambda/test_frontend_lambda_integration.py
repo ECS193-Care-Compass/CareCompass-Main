@@ -72,10 +72,15 @@ try:
     else:
         error("S3 Documents bucket NOT configured")
     
-    if 'GOOGLE_API_KEY' in env_vars:
-        success("Google API key configured")
+    if 'GCP_PROJECT_ID' in env_vars:
+        success(f"GCP Project ID configured: {env_vars['GCP_PROJECT_ID']}")
     else:
-        warning("Google API key NOT configured")
+        warning("GCP Project ID NOT configured")
+    
+    if 'GCP_CREDENTIALS_BASE64' in env_vars:
+        success("GCP credentials configured")
+    else:
+        warning("GCP credentials NOT configured")
         
 except Exception as e:
     error(f"Failed to get Lambda config: {e}")
@@ -264,10 +269,10 @@ except Exception as e:
 header("TEST SUMMARY")
 
 info("System Integration Status:")
-info("  ✓ Lambda is deployed and accessible")
-info("  ✓ S3 buckets are connected via environment variables")
-info("  ✓ CloudWatch logging is active")
-info("  ✓ API endpoints are responding")
+info("  [PASS] Lambda is deployed and accessible")
+info("  [PASS] S3 buckets are connected via environment variables")
+info("  [PASS] CloudWatch logging is active")
+info("  [PASS] API endpoints are responding")
 print()
 info("Frontend Integration (Next Steps):")
 info("  1. Install frontend dependencies: npm install")

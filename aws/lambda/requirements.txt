@@ -1,8 +1,8 @@
+numpy<2.0.0
 python-dotenv==1.0.0
 google-genai>=1.0.0
 chromadb==0.4.15
-sentence-transformers>=2.2.2
+onnxruntime==1.16.3
 pypdf==3.17.4
-boto3>=1.26.137
-websockets>=13.0.0,<15.1.0
-h11>=0.13,<0.15
+PyJWT[crypto]>=2.8.0
+requests>=2.31.0

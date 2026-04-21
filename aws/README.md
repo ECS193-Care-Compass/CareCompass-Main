@@ -38,7 +38,7 @@ aws/
 - AWS CLI v2 (no SAM CLI needed)
 - Python 3.11+
 - AWS IAM user with permissions: CloudFormation, Lambda, API Gateway, S3, DynamoDB, IAM
-- Google Gemini API key
+git ls-files | Select-String -Pattern "gcp-key|\.env|secret"git ls-files | Select-String -Pattern "gcp-key|\.env|secret"git ls-files | Select-String -Pattern "gcp-key|\.env|secret"- Google Cloud Platform service account with **Vertex AI User** role
 - Supabase JWT secret
 - Vectorstore built locally (run backend once to generate it)
 
@@ -68,7 +68,8 @@ aws configure --profile carecompass
 .\aws\deployment\deploy.ps1 `
     -Environment dev `
     -AWSProfile carecompass `
-    -GoogleApiKey "your_gemini_key" `
+    -GCPProjectId "your-gcp-project-id" `
+    -GCPKeyFile "C:\path\to\gcp-key.json" `
     -SupabaseJwtSecret "your_supabase_jwt_secret"
 ```
 

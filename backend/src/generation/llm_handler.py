@@ -1,6 +1,5 @@
 """
-LLM handler for Google Gemini API
-Using google-genai library
+LLM handler for Google Gemini via Vertex AI
 
 Crisis detection is handled via structured JSON output, every Gemini
 response includes an is_crisis field assessed by the model.
@@ -10,10 +9,13 @@ Conversation history is stored in DynamoDB (per session) with an
 in-memory fallback when DynamoDB is unavailable.
 """
 import json
-from google import genai
-from google.genai import types
 from typing import Dict, Any, List, Optional
-from config.settings import GOOGLE_API_KEY, MODEL_NAME, TEMPERATURE, MAX_OUTPUT_TOKENS, MAX_HISTORY_TURNS
+import vertexai
+from vertexai.generative_models import GenerativeModel, Content, Part, GenerationConfig
+from config.settings import (
+    MODEL_NAME, TEMPERATURE, MAX_OUTPUT_TOKENS, MAX_HISTORY_TURNS,
+    GCP_PROJECT_ID, GCP_LOCATION
+)
 from src.utils.dynamodb_history import DynamoDBHistory
 from src.utils.logger import get_logger
 
@@ -21,34 +23,31 @@ logger = get_logger(__name__)
 
 
 class LLMHandler:
-    """Handle interactions with Google Gemini API"""
+    """Handle interactions with Google Gemini via Vertex AI"""
 
     def __init__(
         self,
-        api_key: str = GOOGLE_API_KEY,
         model_name: str = MODEL_NAME,
         temperature: float = TEMPERATURE,
         max_tokens: int = MAX_OUTPUT_TOKENS,
     ):
-        if not api_key:
-            raise ValueError("GOOGLE_API_KEY must be set in environment variables")
-
-        self.api_key = api_key
         self.model_name = model_name
         self.temperature = temperature
         self.max_tokens = max_tokens
 
-        # Create Gemini client
-        self.client = genai.Client(api_key=self.api_key)
-
-        # Generation config with JSON output
-        self.generation_config = types.GenerateContentConfig(
+        if not GCP_PROJECT_ID:
+            raise ValueError("GCP_PROJECT_ID must be set in environment variables")
+        
+        vertexai.init(project=GCP_PROJECT_ID, location=GCP_LOCATION)
+        self.model = GenerativeModel(model_name)
+        self.generation_config = GenerationConfig(
             temperature=self.temperature,
             top_p=0.95,
             top_k=40,
             max_output_tokens=self.max_tokens,
             response_mime_type="application/json",
         )
+        logger.info(f"Initialized Vertex AI with project: {GCP_PROJECT_ID}, model: {model_name}")
 
         # DynamoDB history (falls back to in-memory if unavailable)
         self.db_history = DynamoDBHistory()
@@ -56,8 +55,6 @@ class LLMHandler:
         # In-memory fallback (used when DynamoDB is unavailable)
         self._memory_history: Dict[str, List[Dict]] = {}
         self.max_history_turns = MAX_HISTORY_TURNS
-
-        logger.info(f"Initialized LLMHandler with model: {model_name}")
 
     # Public API
 
@@ -89,10 +86,10 @@ class LLMHandler:
             # Build contents with conversation history
             contents = self._build_contents(prompt, session_id)
 
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=contents,
-                config=self.generation_config,
+            # Call Vertex AI
+            response = self.model.generate_content(
+                contents,
+                generation_config=self.generation_config,
             )
 
             response_text = response.text if hasattr(response, 'text') else ""
@@ -161,10 +158,7 @@ class LLMHandler:
     def test_connection(self) -> bool:
         """Test if the Gemini API connection is working."""
         try:
-            self.client.models.generate_content(
-                model=self.model_name,
-                contents="Hello, this is a test.",
-            )
+            self.model.generate_content("Hello, this is a test.")
             return True
         except Exception as e:
             logger.error(f"Connection test failed: {str(e)}")
@@ -212,10 +206,10 @@ class LLMHandler:
             parts = turn.get("parts", [])
             text = parts[0] if parts else ""
             if text:
-                contents.append(types.Content(role=role, parts=[types.Part.from_text(text=text)]))
+                contents.append(Content(role=role, parts=[Part.from_text(text)]))
 
         # Current prompt as the final user message
-        contents.append(types.Content(role="user", parts=[types.Part.from_text(text=prompt)]))
+        contents.append(Content(role="user", parts=[Part.from_text(prompt)]))
 
         logger.info(f"Built contents with {len(history)} history messages + current prompt")
         return contents

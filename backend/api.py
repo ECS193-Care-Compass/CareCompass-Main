@@ -2,7 +2,7 @@
 FastAPI server for CARE Bot
 Connects the Python RAG backend to the Electron + React frontend
 """
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
@@ -10,7 +10,9 @@ from main import CAREBot
 from src.auth.supabase_auth import verify_supabase_token
 from src.utils.logger import get_logger
 from src.utils.backup_scheduler import BackupScheduler
+from src.utils.voice_service import VoiceService
 from config.settings import VECTORSTORE_DIR
+import base64
 import boto3
 import json
 from datetime import datetime
@@ -77,17 +79,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize bot and backup scheduler
+# Initialize bot, backup scheduler, and voice service
 bot = None
 backup_scheduler = None
+voice_service = None
 
 
 @app.on_event("startup")
 async def startup():
-    """Initialize CARE Bot and backup scheduler on server startup"""
-    global bot, backup_scheduler
+    """Initialize CARE Bot, voice service, and backup scheduler on server startup"""
+    global bot, backup_scheduler, voice_service
     logger.info("Starting CARE Bot API...")
     bot = CAREBot()
+
+    # Initialize voice service
+    try:
+        voice_service = VoiceService()
+        logger.info("Voice service initialized")
+    except Exception as e:
+        logger.warning(f"Could not initialize voice service: {e}")
 
     
     # Initialize vector store if empty
@@ -251,6 +261,94 @@ async def get_categories():
             {"id": "delayed_ambivalent", "name": "Delayed Follow-Up", "description": "It's been a while, not sure if it still matters"},
         ]
     }
+
+
+@app.post("/voice-chat")
+async def voice_chat(
+    audio: Optional[UploadFile] = File(None),
+    text: Optional[str] = Form(None),
+    scenario: Optional[str] = Form(None),
+    session_id: Optional[str] = Form(None),
+    authorization: Optional[str] = Header(None),
+):
+    """
+    Voice chat endpoint: transcribe audio (or accept text directly) → RAG → synthesize response.
+
+    Returns JSON with:
+    - user_transcript: what the user said
+    - bot_response: CARE Bot's reply
+    - audio_base64: base64-encoded MP3 of the reply (empty string if synthesis unavailable)
+    - is_crisis: whether crisis indicators were detected
+    """
+    if not voice_service:
+        raise HTTPException(status_code=503, detail="Voice service not available")
+
+    start_time = datetime.now()
+
+    # Resolve session from JWT or form field
+    if authorization and authorization.startswith("Bearer "):
+        jwt_user = verify_supabase_token(authorization[7:])
+        if jwt_user:
+            session_id = jwt_user
+
+    try:
+        # 1. Get transcript
+        transcript = ""
+        if text and text.strip():
+            transcript = text.strip()
+        elif audio:
+            audio_bytes = await audio.read()
+            file_ext = "webm"
+            if audio.filename and "." in audio.filename:
+                file_ext = audio.filename.rsplit(".", 1)[-1]
+            transcript = voice_service.transcribe_audio(audio_bytes, file_ext) or ""
+
+        # Handle empty/silent input
+        if not transcript:
+            fallback = "I'm sorry, I didn't quite catch that. Could you please say that again?"
+            audio_bytes_out = voice_service.synthesize_speech(fallback)
+            audio_b64 = base64.b64encode(audio_bytes_out).decode() if audio_bytes_out else ""
+            return {
+                "user_transcript": "[Silence/Unclear]",
+                "bot_response": fallback,
+                "audio_base64": audio_b64,
+                "is_crisis": False,
+                "session_id": session_id,
+            }
+
+        # 2. Process via RAG pipeline
+        result = bot.process_query(
+            user_query=transcript,
+            scenario_category=scenario,
+            session_id=session_id,
+        )
+
+        # 3. Synthesize response audio
+        audio_bytes_out = voice_service.synthesize_speech(result["response"])
+        audio_b64 = base64.b64encode(audio_bytes_out).decode() if audio_bytes_out else ""
+
+        duration = (datetime.now() - start_time).total_seconds()
+        logger.info(f"/voice-chat completed in {duration:.2f}s. Crisis: {result['is_crisis']}")
+
+        log_to_s3("/voice-chat", "success", {
+            "transcript": transcript,
+            "response": result["response"],
+            "scenario": scenario,
+            "is_crisis": result["is_crisis"],
+        })
+
+        return {
+            "user_transcript": transcript,
+            "bot_response": result["response"],
+            "audio_base64": audio_b64,
+            "is_crisis": result["is_crisis"],
+            "session_id": session_id,
+        }
+
+    except Exception as e:
+        logger.error(f"Error in voice_chat: {e}")
+        log_to_s3("/voice-chat", "error", {"error": str(e)})
+        raise HTTPException(status_code=500, detail="Error processing voice message")
 
 
 if __name__ == "__main__":

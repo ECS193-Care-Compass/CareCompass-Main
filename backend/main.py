@@ -11,7 +11,11 @@ from src.generation.prompt_templates import PromptTemplates
 from src.generation.llm_handler import LLMHandler
 from src.safety.crisis_detector import CrisisDetector, CRISIS_KEYWORDS
 from src.utils.logger import get_logger, log_interaction
-from config.settings import TOP_K
+from src.utils.response_cache import ResponseCache
+from config.settings import (
+    TOP_K, RESPONSE_CACHE_ENABLED, RESPONSE_CACHE_SIMILARITY,
+    RESPONSE_CACHE_SIZE, RESPONSE_CACHE_TTL, RESPONSE_CACHE_FEATURED_TTL
+)
 
 logger = get_logger(__name__)
 
@@ -57,6 +61,19 @@ class CAREBot:
         # Keyword-only crisis detector (LLM handles implicit detection)
         self.crisis_detector = CrisisDetector()
 
+        # Response cache for cost optimization
+        if RESPONSE_CACHE_ENABLED:
+            self.response_cache = ResponseCache(
+                similarity_threshold=RESPONSE_CACHE_SIMILARITY,
+                max_cache_size=RESPONSE_CACHE_SIZE,
+                ttl_seconds=RESPONSE_CACHE_TTL,
+                featured_ttl_seconds=RESPONSE_CACHE_FEATURED_TTL,
+            )
+            logger.info("Response cache enabled")
+        else:
+            self.response_cache = None
+            logger.info("Response cache disabled")
+
         logger.info("CARE Bot initialized successfully")
 
     def process_query(
@@ -91,6 +108,13 @@ class CAREBot:
                     f"Crisis keyword detected — "
                     f"keyword: {keyword_crisis['keyword_triggered']}"
                 )
+
+        # Step 1.5: Check response cache (skip if crisis detected)
+        if self.response_cache and not keyword_crisis["is_crisis"]:
+            cached = self.response_cache.get(user_query)
+            if cached:
+                logger.info("Returning cached response")
+                return cached
 
         # Step 2: Retrieval
         retrieved_docs = []
@@ -168,6 +192,10 @@ class CAREBot:
                 "scenario":        scenario_category,
             }
         )
+
+        # Step 8: Cache response (if enabled and not crisis)
+        if self.response_cache:
+            self.response_cache.put(user_query, result)
 
         return result
 

@@ -1,6 +1,3 @@
-"""
-Configuration settings for CARE Bot
-"""
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -25,11 +22,11 @@ if not os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
     for directory in [DATA_DIR, RAW_DATA_DIR, PROCESSED_DATA_DIR, VECTORSTORE_DIR]:
         directory.mkdir(parents=True, exist_ok=True)
 
-# API Configuration
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+# Vertex AI Configuration
+GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "")
+GCP_LOCATION = os.getenv("GCP_LOCATION", "us-central1")
 
 # Embedding Configuration
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "gemini-embedding-001")
 CHUNK_SIZE = 500
 CHUNK_OVERLAP = 50
 
@@ -54,6 +51,15 @@ DYNAMODB_TABLE_NAME = os.getenv("DYNAMODB_TABLE_NAME", "care-compass-conversatio
 DYNAMODB_REGION = os.getenv("AWS_REGION", "us-east-1")
 DYNAMODB_TTL_MINUTES = int(os.getenv("DYNAMODB_TTL_MINUTES", "30"))
 MAX_HISTORY_TURNS = int(os.getenv("MAX_HISTORY_TURNS", "10"))
+
+# Response Cache Configuration
+RESPONSE_CACHE_ENABLED = os.getenv("RESPONSE_CACHE_ENABLED", "true").lower() == "true"
+RESPONSE_CACHE_SIMILARITY = float(os.getenv("RESPONSE_CACHE_SIMILARITY", "0.95"))
+RESPONSE_CACHE_SIZE = int(os.getenv("RESPONSE_CACHE_SIZE", "500"))
+RESPONSE_CACHE_TTL = int(os.getenv("RESPONSE_CACHE_TTL", "3600"))  # 1 hour default
+RESPONSE_CACHE_FEATURED_TTL = int(os.getenv("RESPONSE_CACHE_FEATURED_TTL", "86400"))  # 24 hours for preset prompts
+RESPONSE_CACHE_TABLE_NAME = os.getenv("RESPONSE_CACHE_TABLE_NAME", "care-compass-response-cache-dev")
+RESPONSE_CACHE_PERSIST = os.getenv("RESPONSE_CACHE_PERSIST", "true").lower() == "true"
 
 # Document metadata fields to preserve
 METADATA_FIELDS = [

@@ -168,7 +168,7 @@ for doc in test_documents:
         
         key = f"e2e_test/{doc['type']}/{doc['name']}"
         if s3_manager.upload_document(temp_path, key, bucket=s3_manager.documents_bucket):
-            success(f"Uploaded: {doc['name']} → {key}")
+            success(f"Uploaded: {doc['name']} -> {key}")
             uploaded_keys.append(key)
             test_stats['passed'] += 1
             os.unlink(temp_path)

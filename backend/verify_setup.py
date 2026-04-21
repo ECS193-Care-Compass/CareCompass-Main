@@ -15,31 +15,31 @@ def check_python_version():
     """Check Python version"""
     version = sys.version_info
     if version.major >= 3 and version.minor >= 8:
-        print(f"✓ Python version: {version.major}.{version.minor}.{version.micro}")
+        print(f"[PASS] Python version: {version.major}.{version.minor}.{version.micro}")
         return True
     else:
-        print(f"✗ Python version too old: {version.major}.{version.minor}.{version.micro}")
+        print(f"[FAIL] Python version too old: {version.major}.{version.minor}.{version.micro}")
         print("  Required: Python 3.8+")
         return False
 
 def check_env_file():
-    """Check if .env file exists and has API key"""
+    """Check if .env file exists and has GCP configuration"""
     env_path = PROJECT_ROOT / ".env"
     
     if not env_path.exists():
-        print("✗ .env file not found")
+        print("[FAIL] .env file not found")
         print("  Run: cp .env.example .env")
-        print("  Then add your GOOGLE_API_KEY")
+        print("  Then configure GCP_PROJECT_ID and GOOGLE_APPLICATION_CREDENTIALS")
         return False
     
     with open(env_path) as f:
         content = f.read()
-        if "your_api_key_here" in content or "GOOGLE_API_KEY=" not in content:
-            print("✗ .env file exists but API key not configured")
-            print("  Edit .env and add your Google API key")
+        if "GCP_PROJECT_ID=" not in content or "your-gcp-project-id" in content:
+            print("[FAIL] .env file exists but GCP_PROJECT_ID not configured")
+            print("  Edit .env and add your GCP project ID")
             return False
     
-    print("✓ .env file configured")
+    print("[PASS] .env file configured")
     return True
 
 def check_dependencies():
@@ -48,30 +48,30 @@ def check_dependencies():
     
     try:
         import google.generativeai
-        print("✓ google-generativeai installed")
+        print("[PASS] google-generativeai installed")
     except ImportError:
         missing.append("google-generativeai")
     
     try:
         import chromadb
-        print("✓ chromadb installed")
+        print("[PASS] chromadb installed")
     except ImportError:
         missing.append("chromadb")
     
     try:
         import sentence_transformers
-        print("✓ sentence-transformers installed")
+        print("[PASS] sentence-transformers installed")
     except ImportError:
         missing.append("sentence-transformers")
     
     try:
         import pypdf
-        print("✓ pypdf installed")
+        print("[PASS] pypdf installed")
     except ImportError:
         missing.append("pypdf")
     
     if missing:
-        print(f"✗ Missing dependencies: {', '.join(missing)}")
+        print(f"[FAIL] Missing dependencies: {', '.join(missing)}")
         print("  Run: pip install -r requirements.txt")
         return False
     
@@ -82,16 +82,16 @@ def check_data_directory():
     raw_dir = PROJECT_ROOT / "data" / "raw"
     
     if not raw_dir.exists():
-        print("✗ data/raw directory not found")
+        print("[FAIL] data/raw directory not found")
         return False
     
     pdfs = list(raw_dir.glob("*.pdf"))
     if not pdfs:
-        print("✗ No PDF files found in data/raw/")
+        print("[FAIL] No PDF files found in data/raw/")
         print("  Add your documents to data/raw/")
         return False
     
-    print(f"✓ Found {len(pdfs)} PDF(s) in data/raw/")
+    print(f"[PASS] Found {len(pdfs)} PDF(s) in data/raw/")
     for pdf in pdfs:
         print(f"  - {pdf.name}")
     
@@ -116,10 +116,10 @@ def check_structure():
             missing.append(dir_path)
     
     if missing:
-        print(f"✗ Missing directories: {', '.join(missing)}")
+        print(f"[FAIL] Missing directories: {', '.join(missing)}")
         return False
     
-    print("✓ Project structure OK")
+    print("[PASS] Project structure OK")
     return True
 
 def main():
@@ -144,11 +144,11 @@ def main():
     
     print("="*60)
     if all(results):
-        print("✓ All checks passed! You're ready to run CARE Bot")
+        print("[PASS] All checks passed! You're ready to run CARE Bot")
         print("\nNext steps:")
         print("  python main.py")
     else:
-        print("✗ Some checks failed. Please fix the issues above.")
+        print("[FAIL] Some checks failed. Please fix the issues above.")
         print("\nQuick fixes:")
         print("  1. Install dependencies: pip install -r requirements.txt")
         print("  2. Set up .env: cp .env.example .env")

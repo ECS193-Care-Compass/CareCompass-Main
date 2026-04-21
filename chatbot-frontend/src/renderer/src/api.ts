@@ -6,46 +6,12 @@ export const API_BASE_URL =
 
 export const DEBUG = import.meta.env.VITE_DEBUG === 'true';
 
-// ==================== USER ID MANAGEMENT ====================
-
-const USER_ID_STORAGE_KEY = 'care_bot_user_id';
-
-/**
- * Generate a unique user ID based on timestamp
- */
-function generateUserId(): string {
-  return `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-}
-
-/**
- * Get or create a persistent user ID for this device/browser
- */
-export function getUserId(): string {
-  let userId = localStorage.getItem(USER_ID_STORAGE_KEY);
-  
-  if (!userId) {
-    userId = generateUserId();
-    localStorage.setItem(USER_ID_STORAGE_KEY, userId);
-    logDebug('Generated new user ID', userId);
-  }
-  
-  return userId;
-}
-
-/**
- * Reset user ID (for testing or manual user switch)
- */
-export function resetUserId(): void {
-  localStorage.removeItem(USER_ID_STORAGE_KEY);
-  logDebug('User ID reset');
-}
-
-// ==================== INTERFACES ====================
+//  INTERFACES 
 
 export interface ChatRequest {
   query: string;
-  user_id?: string;
   scenario?: string;
+  session_id?: string;
 }
 
 export interface ChatResponse {
@@ -66,6 +32,14 @@ export interface CategoriesResponse {
   categories: CategoryInfo[];
 }
 
+export interface VoiceResponse {
+  user_transcript: string;
+  bot_response: string;
+  audio_base64: string;
+  is_crisis: boolean;
+  session_id: string;
+}
+
 export interface StatsResponse {
   vector_store: {
     document_count: number;
@@ -81,47 +55,33 @@ export interface StatsResponse {
   };
 }
 
-// ==================== ENDPOINTS ====================
-
-export interface VoiceResponse {
-  user_transcript: string;
-  bot_response: string;
-  audio_base64: string;
-  is_crisis: boolean;
-  session_id: string;
-}
+//  ENDPOINTS 
 
 const endpoints = {
   chat: `${API_BASE_URL}/chat`,
-  voice: `${API_BASE_URL}/voice-chat`,
+  voiceChat: `${API_BASE_URL}/voice-chat`,
   clear: `${API_BASE_URL}/clear`,
   stats: `${API_BASE_URL}/stats`,
   health: `${API_BASE_URL}/health`,
   categories: `${API_BASE_URL}/categories`,
 };
 
-// ==================== HELPER FUNCTIONS ====================
+//  HELPER FUNCTIONS 
 
-function logDebug(message: string, data?: unknown): void {
+function logDebug(message: string, data?: any) {
   if (DEBUG) {
-    console.log(`[DEBUG] ${message}`, data || '')
+    console.log(`[DEBUG] ${message}`, data || '');
   }
 }
 
-const DEFAULT_TIMEOUT_MS = 60000; // 60 seconds
-
-async function fetchWithTimeout(
-  url: string,
-  options: RequestInit,
-  timeoutMs: number = DEFAULT_TIMEOUT_MS
-): Promise<Response> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { ...options, signal: controller.signal });
-  } finally {
-    clearTimeout(timeoutId);
+function buildHeaders(authToken?: string): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (authToken) {
+    headers['Authorization'] = authToken;
   }
+  return headers;
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {
@@ -133,31 +93,33 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return response.json();
 }
 
-// ==================== API METHODS ====================
+//  API METHODS 
 
 /**
- * Send a chat message to CARE Bot
+ * Send message to CARE Bot
  * @param query - User's message/question
  * @param scenario - Optional scenario category
+ * @param sessionId - Session ID (guest UUID or authenticated user ID)
+ * @param authToken - Optional Bearer token for authenticated users
  * @returns Chat response with bot reply and metadata
  */
 export async function sendChatMessage(
   query: string,
-  scenario?: string
+  scenario?: string,
+  sessionId?: string,
+  authToken?: string,
 ): Promise<ChatResponse> {
-  logDebug('sendChatMessage', { query, scenario });
+  logDebug('sendChatMessage', { query, scenario, sessionId });
 
   const request: ChatRequest = {
     query,
-    user_id: getUserId(),
     scenario,
+    session_id: sessionId,
   };
 
-  const response = await fetchWithTimeout(endpoints.chat, {
+  const response = await fetch(endpoints.chat, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: buildHeaders(authToken),
     body: JSON.stringify(request),
   });
 
@@ -165,62 +127,63 @@ export async function sendChatMessage(
 }
 
 /**
- * Send voice audio to CARE Bot
- * @param audioBlob - Blob of recorded audio
+ * Send voice audio to CARE Bot for transcription + RAG + synthesis.
+ * @param audioBlob - Recorded audio blob (webm)
+ * @param sessionId - Session ID for conversation history
+ * @param authToken - Optional Bearer token for authenticated users
  * @param scenario - Optional scenario category
  */
 export async function sendVoiceChat(
   audioBlob: Blob,
+  sessionId?: string,
+  authToken?: string,
   scenario?: string,
-  text?: string
 ): Promise<VoiceResponse> {
-  console.log(`[API] sendVoiceChat called. Blob size: ${audioBlob.size} bytes, text: ${text ? "provided" : "none"}`);
+  logDebug('sendVoiceChat', { blobSize: audioBlob.size, sessionId });
 
   const formData = new FormData();
-  // Converting Blob to File ensures standard multipart compatibility
   const audioFile = new File([audioBlob], 'recording.webm', { type: 'audio/webm' });
   formData.append('audio', audioFile);
-  
-  formData.append('user_id', getUserId());
+  if (sessionId) formData.append('session_id', sessionId);
   if (scenario) formData.append('scenario', scenario);
-  if (text) formData.append('text', text);
 
-  try {
-    const response = await fetchWithTimeout(endpoints.voice, {
-      method: 'POST',
-      body: formData,
-    }, 90000); // 90 second timeout for voice (transcription + synthesis)
-    console.log(`[API] voice-chat fetch response status: ${response.status}`);
-    return handleResponse<VoiceResponse>(response);
-  } catch (err) {
-    console.error(`[API] voice-chat fetch FAILED:`, err);
-    throw err;
-  }
+  const headers: Record<string, string> = {};
+  if (authToken) headers['Authorization'] = authToken;
+
+  const response = await fetch(endpoints.voiceChat, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  return handleResponse<VoiceResponse>(response);
 }
 
-/**
- * Clear the conversation history
- */
-export async function clearConversation(): Promise<{ status: string; message: string }> {
-  logDebug('clearConversation');
+// Clear the conversation history
+export async function clearConversation(
+  sessionId?: string,
+  authToken?: string,
+): Promise<{ status: string; message: string }> {
+  logDebug('clearConversation', { sessionId });
 
-  const response = await fetchWithTimeout(endpoints.clear, {
+  const headers = buildHeaders(authToken);
+  if (sessionId) {
+    headers['X-Session-ID'] = sessionId;
+  }
+
+  const response = await fetch(endpoints.clear, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
   });
 
   return handleResponse(response);
 }
 
-/**
- * Get bot statistics
- */
+// Get bot statistics
 export async function getStats(): Promise<StatsResponse> {
   logDebug('getStats');
 
-  const response = await fetchWithTimeout(endpoints.stats, {
+  const response = await fetch(endpoints.stats, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -230,13 +193,11 @@ export async function getStats(): Promise<StatsResponse> {
   return handleResponse<StatsResponse>(response);
 }
 
-/**
- * Check if backend is healthy
- */
+// Check if backend is healthy
 export async function checkHealth(): Promise<{ status: string; message: string }> {
   logDebug('checkHealth');
 
-  const response = await fetchWithTimeout(endpoints.health, {
+  const response = await fetch(endpoints.health, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -246,13 +207,11 @@ export async function checkHealth(): Promise<{ status: string; message: string }
   return handleResponse(response);
 }
 
-/**
- * Get available scenario categories
- */
+// Get available scenario categories
 export async function getCategories(): Promise<CategoriesResponse> {
   logDebug('getCategories');
 
-  const response = await fetchWithTimeout(endpoints.categories, {
+  const response = await fetch(endpoints.categories, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -262,18 +221,14 @@ export async function getCategories(): Promise<CategoriesResponse> {
   return handleResponse<CategoriesResponse>(response);
 }
 
-// ==================== UTILITY FUNCTIONS ====================
+// UTILITY FUNCTIONS 
 
-/**
- * Get API base URL (useful for debugging)
- */
+// Get API base URL - mostly used for debugging
 export function getApiBaseUrl(): string {
   return API_BASE_URL;
 }
 
-/**
- * Verify backend connectivity
- */
+// Verify backend connectivity
 export async function verifyBackendConnection(): Promise<boolean> {
   try {
     const health = await checkHealth();

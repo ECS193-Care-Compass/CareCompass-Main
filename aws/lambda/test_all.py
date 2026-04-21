@@ -29,12 +29,12 @@ event = {
 
 try:
     response = lambda_handler(event, None)
-    print(f"✓ Status: {response['statusCode']}")
-    print(f"✓ Body: {response['body']}")
+    print(f"[PASS] Status: {response['statusCode']}")
+    print(f"[PASS] Body: {response['body']}")
     assert response['statusCode'] == 200
-    print("✓ PASSED")
+    print("[PASS] PASSED")
 except Exception as e:
-    print(f"✗ FAILED: {e}")
+    print(f"[FAIL] FAILED: {e}")
 
 # Test 2: Categories endpoint
 print("\n2. Testing /categories endpoint...")
@@ -43,14 +43,14 @@ event["requestContext"]["http"]["path"] = "/categories"
 
 try:
     response = lambda_handler(event, None)
-    print(f"✓ Status: {response['statusCode']}")
+    print(f"[PASS] Status: {response['statusCode']}")
     body = json.loads(response['body'])
-    print(f"✓ Categories count: {len(body['categories'])}")
+    print(f"[PASS] Categories count: {len(body['categories'])}")
     assert response['statusCode'] == 200
     assert len(body['categories']) == 5
-    print("✓ PASSED")
+    print("[PASS] PASSED")
 except Exception as e:
-    print(f"✗ FAILED: {e}")
+    print(f"[FAIL] FAILED: {e}")
 
 # Test 3: CORS preflight
 print("\n3. Testing CORS preflight...")
@@ -59,12 +59,12 @@ event["rawPath"] = "/health"
 
 try:
     response = lambda_handler(event, None)
-    print(f"✓ Status: {response['statusCode']}")
+    print(f"[PASS] Status: {response['statusCode']}")
     assert response['statusCode'] == 200
     assert 'Access-Control-Allow-Origin' in response['headers']
-    print("✓ PASSED")
+    print("[PASS] PASSED")
 except Exception as e:
-    print(f"✗ FAILED: {e}")
+    print(f"[FAIL] FAILED: {e}")
 
 # Test 4: 404 for unknown route
 print("\n4. Testing 404 for unknown route...")
@@ -73,11 +73,11 @@ event["rawPath"] = "/unknown"
 
 try:
     response = lambda_handler(event, None)
-    print(f"✓ Status: {response['statusCode']}")
+    print(f"[PASS] Status: {response['statusCode']}")
     assert response['statusCode'] == 404
-    print("✓ PASSED")
+    print("[PASS] PASSED")
 except Exception as e:
-    print(f"✗ FAILED: {e}")
+    print(f"[FAIL] FAILED: {e}")
 
 # Test 5: API Gateway format (legacy)
 print("\n5. Testing API Gateway event format...")
@@ -88,11 +88,11 @@ api_gateway_event = {
 
 try:
     response = lambda_handler(api_gateway_event, None)
-    print(f"✓ Status: {response['statusCode']}")
+    print(f"[PASS] Status: {response['statusCode']}")
     assert response['statusCode'] == 200
-    print("✓ PASSED")
+    print("[PASS] PASSED")
 except Exception as e:
-    print(f"✗ FAILED: {e}")
+    print(f"[FAIL] FAILED: {e}")
 
 print("\n" + "=" * 60)
 print("TESTING S3 MANAGER")
@@ -109,13 +109,13 @@ try:
     os.environ['S3_VECTORDB_BUCKET'] = 'test-vectordb-bucket'
     
     s3_manager = S3Manager(region='us-east-1')
-    print(f"✓ Documents bucket: {s3_manager.documents_bucket}")
-    print(f"✓ Processed bucket: {s3_manager.processed_bucket}")
-    print(f"✓ VectorDB bucket: {s3_manager.vectordb_bucket}")
+    print(f"[PASS] Documents bucket: {s3_manager.documents_bucket}")
+    print(f"[PASS] Processed bucket: {s3_manager.processed_bucket}")
+    print(f"[PASS] VectorDB bucket: {s3_manager.vectordb_bucket}")
     assert s3_manager.documents_bucket == 'test-documents-bucket'
-    print("✓ PASSED")
+    print("[PASS] PASSED")
 except Exception as e:
-    print(f"✗ FAILED: {e}")
+    print(f"[FAIL] FAILED: {e}")
 
 print("\n" + "=" * 60)
 print("ALL TESTS COMPLETED")
