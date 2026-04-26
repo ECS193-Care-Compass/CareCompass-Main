@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown"
 import { ArrowUp, Mic } from "lucide-react"
 import { motion, AnimatePresence } from 'framer-motion'
 import { sendChatMessage, sendVoiceChat } from "../api"
+import { useMetrics } from "../context/MetricsContext"
 
 interface WelcomeGlowBoxProps {
   sessionId: string
@@ -25,6 +26,7 @@ export const WelcomeGlowBox = ({ sessionId, authToken }: WelcomeGlowBoxProps) =>
   const lastMsgRef = useRef<HTMLDivElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const { recordTextResponse, recordVoiceResponse } = useMetrics();
 
   useEffect(() => {
     if (chatRef.current) {
@@ -47,11 +49,14 @@ export const WelcomeGlowBox = ({ sessionId, authToken }: WelcomeGlowBoxProps) =>
       if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }, 20);
     setIsLoading(true);
-    
+    const t0 = performance.now();
     try {
       const data = await sendChatMessage(text, undefined, sessionId, authToken);
+      const elapsed = Math.round(performance.now() - t0);
+      recordTextResponse(elapsed, data.is_crisis, data.scenario, false);
       setMessages((prev) => [...prev, { role: "ai", text: data.response }]);
     } catch (e) {
+      recordTextResponse(0, false, undefined, true);
       setMessages((prev) => [...prev, { role: "error", text: "Connection error." }]);
     } finally {
       setIsLoading(false);
@@ -94,8 +99,11 @@ export const WelcomeGlowBox = ({ sessionId, authToken }: WelcomeGlowBoxProps) =>
 
   const handleVoiceSubmit = async (blob: Blob) => {
     setIsLoading(true);
+    const t0 = performance.now();
     try {
       const data = await sendVoiceChat(blob, sessionId, authToken);
+      const elapsed = Math.round(performance.now() - t0);
+      recordVoiceResponse(elapsed, data.is_crisis);
 
       setMessages((prev) => [
         ...prev,

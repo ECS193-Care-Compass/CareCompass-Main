@@ -5,7 +5,7 @@ Connects the Python RAG backend to the Electron + React frontend
 from fastapi import FastAPI, Header, HTTPException, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from main import CAREBot
 from src.auth.supabase_auth import verify_supabase_token
 from src.utils.logger import get_logger
@@ -15,6 +15,8 @@ from config.settings import VECTORSTORE_DIR
 import base64
 import boto3
 import json
+import time
+from collections import defaultdict
 from datetime import datetime
 import os
 import sys
@@ -78,6 +80,66 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ---------------------------------------------------------------------------
+# In-memory metrics accumulator (resets on server restart)
+# ---------------------------------------------------------------------------
+class _ServerMetrics:
+    def __init__(self):
+        self.total_requests: int = 0
+        self.total_errors: int = 0
+        self.total_crisis_events: int = 0
+        self.response_times_ms: List[float] = []
+        self.category_counts: dict = defaultdict(int)
+        self.docs_retrieved: List[int] = []
+        self.voice_requests: int = 0
+        self.server_start_time: str = datetime.now().isoformat()
+
+    def record_chat(self, response_time_ms: float, is_crisis: bool, scenario: Optional[str],
+                    docs_retrieved: int, is_error: bool = False):
+        self.total_requests += 1
+        if is_error:
+            self.total_errors += 1
+            return
+        self.response_times_ms.append(response_time_ms)
+        self.docs_retrieved.append(docs_retrieved)
+        if is_crisis:
+            self.total_crisis_events += 1
+        if scenario:
+            self.category_counts[scenario] += 1
+
+    def record_voice(self, response_time_ms: float, is_crisis: bool):
+        self.voice_requests += 1
+        self.total_requests += 1
+        self.response_times_ms.append(response_time_ms)
+        if is_crisis:
+            self.total_crisis_events += 1
+
+    def to_dict(self) -> dict:
+        times = self.response_times_ms
+        docs = self.docs_retrieved
+        return {
+            "server_start_time": self.server_start_time,
+            "total_requests": self.total_requests,
+            "total_errors": self.total_errors,
+            "total_crisis_events": self.total_crisis_events,
+            "voice_requests": self.voice_requests,
+            "response_times": {
+                "count": len(times),
+                "avg_ms": round(sum(times) / len(times), 1) if times else 0,
+                "min_ms": round(min(times), 1) if times else 0,
+                "max_ms": round(max(times), 1) if times else 0,
+                "p95_ms": round(sorted(times)[int(len(times) * 0.95)], 1) if len(times) >= 20 else None,
+            },
+            "docs_retrieved": {
+                "avg": round(sum(docs) / len(docs), 1) if docs else 0,
+            },
+            "category_counts": dict(self.category_counts),
+            "crisis_rate": round(self.total_crisis_events / max(self.total_requests, 1) * 100, 1),
+            "error_rate": round(self.total_errors / max(self.total_requests, 1) * 100, 1),
+        }
+
+_metrics = _ServerMetrics()
 
 # Initialize bot, backup scheduler, and voice service
 bot = None
@@ -144,6 +206,7 @@ class ChatResponse(BaseModel):
     num_docs_retrieved: int
     scenario: Optional[str] = None
     blocked: bool = False
+    processing_time_ms: Optional[int] = None
 
 class StatsResponse(BaseModel):
     vector_store: dict
@@ -188,10 +251,19 @@ async def chat(
     session_id = _resolve_session_id(request, authorization)
 
     try:
+        t_start = time.perf_counter()
         result = bot.process_query(
             user_query=request.query,
             scenario_category=request.scenario,
             session_id=session_id,
+        )
+        processing_time_ms = int((time.perf_counter() - t_start) * 1000)
+
+        _metrics.record_chat(
+            response_time_ms=processing_time_ms,
+            is_crisis=result["is_crisis"],
+            scenario=request.scenario,
+            docs_retrieved=result["num_docs_retrieved"],
         )
         
         # Log to S3
@@ -200,7 +272,8 @@ async def chat(
             "response": result["response"],
             "scenario": request.scenario,
             "is_crisis": result["is_crisis"],
-            "docs_retrieved": result["num_docs_retrieved"]
+            "docs_retrieved": result["num_docs_retrieved"],
+            "processing_time_ms": processing_time_ms,
         })
         
         return ChatResponse(
@@ -208,11 +281,14 @@ async def chat(
             is_crisis=result["is_crisis"],
             num_docs_retrieved=result["num_docs_retrieved"],
             scenario=request.scenario,
-            blocked=result.get("blocked", False)
+            blocked=result.get("blocked", False),
+            processing_time_ms=processing_time_ms,
         )
     
     except Exception as e:
         logger.error(f"Error processing chat: {str(e)}")
+        _metrics.record_chat(response_time_ms=0, is_crisis=False, scenario=request.scenario,
+                             docs_retrieved=0, is_error=True)
         log_to_s3("/chat", "error", {"error": str(e)})
         raise HTTPException(status_code=500, detail="Error processing your message")
 
@@ -328,7 +404,10 @@ async def voice_chat(
         audio_b64 = base64.b64encode(audio_bytes_out).decode() if audio_bytes_out else ""
 
         duration = (datetime.now() - start_time).total_seconds()
+        duration_ms = int(duration * 1000)
         logger.info(f"/voice-chat completed in {duration:.2f}s. Crisis: {result['is_crisis']}")
+
+        _metrics.record_voice(response_time_ms=duration_ms, is_crisis=result["is_crisis"])
 
         log_to_s3("/voice-chat", "success", {
             "transcript": transcript,
@@ -349,6 +428,20 @@ async def voice_chat(
         logger.error(f"Error in voice_chat: {e}")
         log_to_s3("/voice-chat", "error", {"error": str(e)})
         raise HTTPException(status_code=500, detail="Error processing voice message")
+
+
+
+@app.get("/admin/dashboard")
+async def admin_dashboard():
+    """
+    Admin dashboard data: aggregated server metrics + current bot stats.
+    NOTE: No auth guard for local debugging. Add auth before deploying.
+    """
+    bot_stats = bot.get_stats() if bot else {}
+    return {
+        "server_metrics": _metrics.to_dict(),
+        "bot_stats": bot_stats,
+    }
 
 
 if __name__ == "__main__":

@@ -20,6 +20,7 @@ export interface ChatResponse {
   num_docs_retrieved: number;
   scenario?: string;
   blocked?: boolean;
+  processing_time_ms?: number;
 }
 
 export interface CategoryInfo {
@@ -55,6 +56,28 @@ export interface StatsResponse {
   };
 }
 
+export interface DashboardResponse {
+  server_metrics: {
+    server_start_time: string;
+    total_requests: number;
+    total_errors: number;
+    total_crisis_events: number;
+    voice_requests: number;
+    response_times: {
+      count: number;
+      avg_ms: number;
+      min_ms: number;
+      max_ms: number;
+      p95_ms: number | null;
+    };
+    docs_retrieved: { avg: number };
+    category_counts: Record<string, number>;
+    crisis_rate: number;
+    error_rate: number;
+  };
+  bot_stats: StatsResponse;
+}
+
 //  ENDPOINTS 
 
 const endpoints = {
@@ -64,6 +87,7 @@ const endpoints = {
   stats: `${API_BASE_URL}/stats`,
   health: `${API_BASE_URL}/health`,
   categories: `${API_BASE_URL}/categories`,
+  adminDashboard: `${API_BASE_URL}/admin/dashboard`,
 };
 
 //  HELPER FUNCTIONS 
@@ -219,6 +243,18 @@ export async function getCategories(): Promise<CategoriesResponse> {
   });
 
   return handleResponse<CategoriesResponse>(response);
+}
+
+// Get admin dashboard stats
+export async function getDashboardStats(): Promise<DashboardResponse> {
+  logDebug('getDashboardStats');
+
+  const response = await fetch(endpoints.adminDashboard, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  return handleResponse<DashboardResponse>(response);
 }
 
 // UTILITY FUNCTIONS 
