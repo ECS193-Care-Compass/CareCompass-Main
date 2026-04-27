@@ -6,7 +6,7 @@ export const API_BASE_URL =
 
 export const DEBUG = import.meta.env.VITE_DEBUG === 'true';
 
-//  INTERFACES 
+// ── INTERFACES ────────────────────────────────────────────────────────────────
 
 export interface ChatRequest {
   query: string;
@@ -75,10 +75,15 @@ export interface DashboardResponse {
     crisis_rate: number;
     error_rate: number;
   };
-  bot_stats: StatsResponse;
+  bot_stats: {
+    llm_model: string;
+    retriever_top_k: number;
+    crisis_keywords: number;
+    vector_store: { document_count: number };
+  };
 }
 
-//  ENDPOINTS 
+// ── ENDPOINTS ─────────────────────────────────────────────────────────────────
 
 const endpoints = {
   chat: `${API_BASE_URL}/chat`,
@@ -90,9 +95,9 @@ const endpoints = {
   adminDashboard: `${API_BASE_URL}/admin/dashboard`,
 };
 
-//  HELPER FUNCTIONS 
+// ── HELPER FUNCTIONS ──────────────────────────────────────────────────────────
 
-function logDebug(message: string, data?: any) {
+function logDebug(message: string, data?: unknown) {
   if (DEBUG) {
     console.log(`[DEBUG] ${message}`, data || '');
   }
@@ -117,16 +122,8 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return response.json();
 }
 
-//  API METHODS 
+// ── API METHODS ───────────────────────────────────────────────────────────────
 
-/**
- * Send message to CARE Bot
- * @param query - User's message/question
- * @param scenario - Optional scenario category
- * @param sessionId - Session ID (guest UUID or authenticated user ID)
- * @param authToken - Optional Bearer token for authenticated users
- * @returns Chat response with bot reply and metadata
- */
 export async function sendChatMessage(
   query: string,
   scenario?: string,
@@ -150,13 +147,6 @@ export async function sendChatMessage(
   return handleResponse<ChatResponse>(response);
 }
 
-/**
- * Send voice audio to CARE Bot for transcription + RAG + synthesis.
- * @param audioBlob - Recorded audio blob (webm)
- * @param sessionId - Session ID for conversation history
- * @param authToken - Optional Bearer token for authenticated users
- * @param scenario - Optional scenario category
- */
 export async function sendVoiceChat(
   audioBlob: Blob,
   sessionId?: string,
@@ -183,7 +173,6 @@ export async function sendVoiceChat(
   return handleResponse<VoiceResponse>(response);
 }
 
-// Clear the conversation history
 export async function clearConversation(
   sessionId?: string,
   authToken?: string,
@@ -203,49 +192,39 @@ export async function clearConversation(
   return handleResponse(response);
 }
 
-// Get bot statistics
 export async function getStats(): Promise<StatsResponse> {
   logDebug('getStats');
 
   const response = await fetch(endpoints.stats, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
   });
 
   return handleResponse<StatsResponse>(response);
 }
 
-// Check if backend is healthy
 export async function checkHealth(): Promise<{ status: string; message: string }> {
   logDebug('checkHealth');
 
   const response = await fetch(endpoints.health, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
   });
 
   return handleResponse(response);
 }
 
-// Get available scenario categories
 export async function getCategories(): Promise<CategoriesResponse> {
   logDebug('getCategories');
 
   const response = await fetch(endpoints.categories, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
   });
 
   return handleResponse<CategoriesResponse>(response);
 }
 
-// Get admin dashboard stats
 export async function getDashboardStats(): Promise<DashboardResponse> {
   logDebug('getDashboardStats');
 
@@ -257,14 +236,12 @@ export async function getDashboardStats(): Promise<DashboardResponse> {
   return handleResponse<DashboardResponse>(response);
 }
 
-// UTILITY FUNCTIONS 
+// ── UTILITY FUNCTIONS ─────────────────────────────────────────────────────────
 
-// Get API base URL - mostly used for debugging
 export function getApiBaseUrl(): string {
   return API_BASE_URL;
 }
 
-// Verify backend connectivity
 export async function verifyBackendConnection(): Promise<boolean> {
   try {
     const health = await checkHealth();
