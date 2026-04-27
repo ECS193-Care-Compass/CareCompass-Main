@@ -4,22 +4,27 @@ export interface SessionMetrics {
   sessionStartTime: Date
   userMessageCount: number
   aiMessageCount: number
+  quickExitClicks: number
+  resourceClicks: Record<string, number>
+  timeToFirstMessageMs: number | null
   voiceMessageCount: number
-  /** Response time per request in milliseconds */
   responseTimes: number[]
   crisisDetections: number
   errorCount: number
-  /** Map of scenario category → how many times used */
   categoriesUsed: Record<string, number>
 }
 
-// Stored in localStorage — no full arrays, just aggregated numbers
 export interface AllTimeMetrics {
   totalSessions: number
   totalUserMessages: number
   totalAiMessages: number
   totalVoiceMessages: number
   totalCrisisDetections: number
+  totalQuickExitClicks: number
+  totalAbandonedSessions: number
+  resourceClicksAllTime: Record<string, number>
+  avgTimeToFirstMessageMs: number
+  timeToFirstMessageCount: number
   totalErrors: number
   responseTimes: {
     count: number
@@ -28,8 +33,8 @@ export interface AllTimeMetrics {
     maxMs: number
   }
   categoryCountsAllTime: Record<string, number>
-  firstRecordedAt: string  // ISO string
-  lastUpdatedAt: string    // ISO string
+  firstRecordedAt: string
+  lastUpdatedAt: string
 }
 
 const STORAGE_KEY = 'care-compass-metrics-alltime'
@@ -43,6 +48,11 @@ function defaultAllTime(): AllTimeMetrics {
     totalVoiceMessages: 0,
     totalCrisisDetections: 0,
     totalErrors: 0,
+    totalQuickExitClicks: 0,
+    totalAbandonedSessions: 0,
+    resourceClicksAllTime: {},
+    avgTimeToFirstMessageMs: 0,
+    timeToFirstMessageCount: 0,
     responseTimes: { count: 0, sumMs: 0, minMs: Infinity, maxMs: 0 },
     categoryCountsAllTime: {},
     firstRecordedAt: now,
@@ -55,7 +65,6 @@ function loadAllTime(): AllTimeMetrics {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return defaultAllTime()
     const parsed = JSON.parse(raw) as AllTimeMetrics
-    // Guard against stored Infinity (serialised as null by JSON)
     if (parsed.responseTimes.minMs === null || parsed.responseTimes.minMs === undefined) {
       parsed.responseTimes.minMs = Infinity
     }
@@ -67,7 +76,6 @@ function loadAllTime(): AllTimeMetrics {
 
 function saveAllTime(m: AllTimeMetrics) {
   try {
-    // Replace Infinity with a sentinal that survives JSON round-trip
     const copy = { ...m, responseTimes: { ...m.responseTimes } }
     if (!isFinite(copy.responseTimes.minMs)) copy.responseTimes.minMs = 0
     localStorage.setItem(STORAGE_KEY, JSON.stringify(copy))
@@ -81,6 +89,9 @@ interface MetricsContextType {
   allTime: AllTimeMetrics
   recordTextResponse: (responseTimeMs: number, isCrisis: boolean, scenario?: string, isError?: boolean) => void
   recordVoiceResponse: (responseTimeMs: number, isCrisis: boolean) => void
+  recordQuickExit: () => void
+  recordResourceClick: (resourceName: string) => void
+  recordTimeToFirstMessage: (ms: number) => void
   resetMetrics: () => void
   resetAllTime: () => void
 }
@@ -95,6 +106,9 @@ function defaultMetrics(): SessionMetrics {
     crisisDetections: 0,
     errorCount: 0,
     categoriesUsed: {},
+    quickExitClicks: 0,
+    resourceClicks: {},
+    timeToFirstMessageMs: null,
   }
 }
 
@@ -104,15 +118,40 @@ export function MetricsProvider({ children }: { children: ReactNode }) {
   const [metrics, setMetrics] = useState<SessionMetrics>(defaultMetrics)
   const [allTime, setAllTime] = useState<AllTimeMetrics>(() => {
     const loaded = loadAllTime()
-    // Increment session count on mount
-    const updated = { ...loaded, totalSessions: loaded.totalSessions + 1, lastUpdatedAt: new Date().toISOString() }
+    const updated = {
+      ...loaded,
+      totalSessions: loaded.totalSessions + 1,
+      lastUpdatedAt: new Date().toISOString(),
+    }
     saveAllTime(updated)
     return updated
   })
 
-  // Keep a ref so the update functions always see the latest allTime without stale closures
   const allTimeRef = useRef(allTime)
   useEffect(() => { allTimeRef.current = allTime }, [allTime])
+
+  // Track metrics ref for abandonment detection on unmount
+  const metricsRef = useRef(metrics)
+  useEffect(() => { metricsRef.current = metrics }, [metrics])
+
+  // Session abandonment + duration on unmount
+  useEffect(() => {
+    return () => {
+      const m = metricsRef.current
+      const wasAbandoned = m.userMessageCount === 0
+      setAllTime((prev) => {
+        const next = {
+          ...prev,
+          totalAbandonedSessions: wasAbandoned
+            ? (prev.totalAbandonedSessions ?? 0) + 1
+            : prev.totalAbandonedSessions,
+          lastUpdatedAt: new Date().toISOString(),
+        }
+        saveAllTime(next)
+        return next
+      })
+    }
+  }, [])
 
   function updateAllTime(updater: (prev: AllTimeMetrics) => AllTimeMetrics) {
     setAllTime((prev) => {
@@ -185,6 +224,52 @@ export function MetricsProvider({ children }: { children: ReactNode }) {
     }))
   }
 
+  const recordQuickExit = () => {
+    setMetrics(prev => ({ ...prev, quickExitClicks: prev.quickExitClicks + 1 }))
+    updateAllTime(prev => ({
+      ...prev,
+      totalQuickExitClicks: (prev.totalQuickExitClicks ?? 0) + 1,
+      lastUpdatedAt: new Date().toISOString(),
+    }))
+  }
+
+  const recordResourceClick = (resourceName: string) => {
+    setMetrics(prev => ({
+      ...prev,
+      resourceClicks: {
+        ...prev.resourceClicks,
+        [resourceName]: (prev.resourceClicks[resourceName] ?? 0) + 1,
+      },
+    }))
+    updateAllTime(prev => ({
+      ...prev,
+      resourceClicksAllTime: {
+        ...prev.resourceClicksAllTime,
+        [resourceName]: (prev.resourceClicksAllTime[resourceName] ?? 0) + 1,
+      },
+      lastUpdatedAt: new Date().toISOString(),
+    }))
+  }
+
+  const recordTimeToFirstMessage = (ms: number) => {
+    setMetrics(prev => ({
+      ...prev,
+      timeToFirstMessageMs: prev.timeToFirstMessageMs ?? ms,
+    }))
+    updateAllTime(prev => {
+      const count = prev.timeToFirstMessageCount + 1
+      const avg = Math.round(
+        (prev.avgTimeToFirstMessageMs * prev.timeToFirstMessageCount + ms) / count
+      )
+      return {
+        ...prev,
+        avgTimeToFirstMessageMs: avg,
+        timeToFirstMessageCount: count,
+        lastUpdatedAt: new Date().toISOString(),
+      }
+    })
+  }
+
   const resetMetrics = () => setMetrics(defaultMetrics())
 
   const resetAllTime = () => {
@@ -194,7 +279,17 @@ export function MetricsProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <MetricsContext.Provider value={{ metrics, allTime, recordTextResponse, recordVoiceResponse, resetMetrics, resetAllTime }}>
+    <MetricsContext.Provider value={{
+      metrics,
+      allTime,
+      recordTextResponse,
+      recordVoiceResponse,
+      recordQuickExit,
+      recordResourceClick,
+      recordTimeToFirstMessage,
+      resetMetrics,
+      resetAllTime,
+    }}>
       {children}
     </MetricsContext.Provider>
   )

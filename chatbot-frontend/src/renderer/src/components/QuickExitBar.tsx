@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { LogOut, UserX, Clock } from 'lucide-react';
+import { useMetrics } from '../context/MetricsContext'
 
 interface QuickExitBarProps {
   onSignOut?: () => void
@@ -10,7 +11,9 @@ interface QuickExitBarProps {
 }
 
 export function QuickExitBar({ onSignOut, showSignOut, guestTimeLeft, showWarning, formatTime }: QuickExitBarProps) {
+  const {recordQuickExit} = useMetrics()
   const handleQuickExit = () => {
+    recordQuickExit()
     const overlay = document.createElement('div')
     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#a1d7d6;display:flex;align-items:center;justify-content:center;z-index:9999;font-family:sans-serif;color:#134e4a;font-size:1.2rem;'
     overlay.innerText = 'You took a brave step today. Be well. 💙'

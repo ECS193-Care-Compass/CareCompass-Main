@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { X, RefreshCw, AlertTriangle, Clock, MessageSquare, Mic, Zap, Server, BarChart2, History } from 'lucide-react'
+import { X, RefreshCw, AlertTriangle, Clock, MessageSquare, Mic, Zap, Server, BarChart2, History, LogOut } from 'lucide-react'
 import { useMetrics, type AllTimeMetrics } from '../context/MetricsContext'
 import { getDashboardStats, type DashboardResponse } from '../api'
 
@@ -73,6 +73,8 @@ function AllSessionsPanel({ allTime, onReset }: { allTime: AllTimeMetrics; onRes
   const maxCat = catEntries.length ? catEntries[0][1] : 1
   const firstDate = new Date(allTime.firstRecordedAt)
   const lastDate = new Date(allTime.lastUpdatedAt)
+  const resourceEntries = Object.entries(allTime.resourceClicksAllTime ?? {}).sort((a, b) => b[1] - a[1])
+  const maxResourceCount = resourceEntries.length ? resourceEntries[0][1] : 1
 
   return (
     <div>
@@ -88,6 +90,7 @@ function AllSessionsPanel({ allTime, onReset }: { allTime: AllTimeMetrics; onRes
         </button>
       </div>
 
+      {/* Core stats */}
       <div className="grid grid-cols-2 gap-3 mb-4">
         <StatCard icon={<MessageSquare size={18} />} label="Total Sessions" value={allTime.totalSessions} sub={`first: ${firstDate.toLocaleDateString()}`} />
         <StatCard icon={<MessageSquare size={18} />} label="Total Messages" value={allTime.totalUserMessages + allTime.totalAiMessages} sub={`${allTime.totalUserMessages} sent · ${allTime.totalAiMessages} received`} />
@@ -95,6 +98,31 @@ function AllSessionsPanel({ allTime, onReset }: { allTime: AllTimeMetrics; onRes
         <StatCard icon={<AlertTriangle size={18} />} label="Crisis Detections" value={allTime.totalCrisisDetections} accent={allTime.totalCrisisDetections > 0} sub={allTime.totalErrors > 0 ? `${allTime.totalErrors} error(s)` : undefined} />
       </div>
 
+      {/* New metrics */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <StatCard
+          icon={<LogOut size={18} />}
+          label="Quick Exits"
+          value={allTime.totalQuickExitClicks ?? 0}
+          accent={(allTime.totalQuickExitClicks ?? 0) > 0}
+        />
+        <StatCard
+          icon={<MessageSquare size={18} />}
+          label="Abandoned Sessions"
+          value={allTime.totalAbandonedSessions ?? 0}
+          sub="left without messaging"
+        />
+        {allTime.avgTimeToFirstMessageMs > 0 && (
+          <StatCard
+            icon={<Clock size={18} />}
+            label="Avg Time to First Msg"
+            value={msToSecs(allTime.avgTimeToFirstMessageMs)}
+            sub={`${allTime.timeToFirstMessageCount} samples`}
+          />
+        )}
+      </div>
+
+      {/* Response times */}
       <div className="bg-white/60 border border-teal-100 rounded-xl p-4 mb-4">
         <p className="text-xs font-bold text-teal-700 uppercase tracking-wide mb-3 flex items-center gap-1.5">
           <Zap size={12} /> Response Times (all sessions · {rt.count} samples)
@@ -113,12 +141,25 @@ function AllSessionsPanel({ allTime, onReset }: { allTime: AllTimeMetrics; onRes
         )}
       </div>
 
+      {/* Categories */}
       {catEntries.length > 0 && (
         <div className="bg-white/60 border border-teal-100 rounded-xl p-4 mb-4">
           <p className="text-xs font-bold text-teal-700 uppercase tracking-wide mb-3">Categories Used (all sessions)</p>
           <div className="space-y-2">
             {catEntries.map(([cat, count]) => (
               <MiniBar key={cat} label={cat.replace(/_/g, ' ')} value={count} max={maxCat} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Resource clicks all time */}
+      {resourceEntries.length > 0 && (
+        <div className="bg-white/60 border border-teal-100 rounded-xl p-4 mb-4">
+          <p className="text-xs font-bold text-teal-700 uppercase tracking-wide mb-3">Resource Clicks (all time)</p>
+          <div className="space-y-2">
+            {resourceEntries.map(([name, count]) => (
+              <MiniBar key={name} label={name} value={count} max={maxResourceCount} />
             ))}
           </div>
         </div>
@@ -170,6 +211,8 @@ export function AdminDashboard({ onClose }: AdminDashboardProps) {
   const totalSessionMsgs = metrics.userMessageCount + metrics.aiMessageCount
   const catEntries = Object.entries(metrics.categoriesUsed).sort((a, b) => b[1] - a[1])
   const maxCatCount = catEntries.length ? catEntries[0][1] : 1
+  const resourceSessionEntries = Object.entries(metrics.resourceClicks).sort((a, b) => b[1] - a[1])
+  const maxResourceSession = resourceSessionEntries.length ? resourceSessionEntries[0][1] : 1
 
   // ── backend derived values ────────────────────────────────────────────────
   const sm = backendData?.server_metrics
@@ -192,7 +235,7 @@ export function AdminDashboard({ onClose }: AdminDashboardProps) {
             <div className="flex items-center gap-2">
               <BarChart2 className="text-teal-600" size={20} />
               <h2 className="text-lg font-bold text-teal-900">Admin Dashboard</h2>
-              <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-700 border border-amber-200 font-medium">DEBUG MODE</span>
+              <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-700 border border-amber-200 font-medium">ADMIN ONLY</span>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -232,13 +275,29 @@ export function AdminDashboard({ onClose }: AdminDashboardProps) {
                 <button onClick={resetMetrics} className="text-xs text-teal-500 hover:text-teal-700 hover:underline">Reset</button>
               </div>
 
+              {/* Core stats */}
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <StatCard icon={<Clock size={18} />} label="Duration" value={sessionDuration} sub={`started ${metrics.sessionStartTime.toLocaleTimeString()}`} />
                 <StatCard icon={<MessageSquare size={18} />} label="Total Messages" value={totalSessionMsgs} sub={`${metrics.userMessageCount} sent · ${metrics.aiMessageCount} received`} />
                 <StatCard icon={<Mic size={18} />} label="Voice Messages" value={metrics.voiceMessageCount} />
                 <StatCard icon={<AlertTriangle size={18} />} label="Crisis Detections" value={metrics.crisisDetections} accent={metrics.crisisDetections > 0} sub={metrics.errorCount > 0 ? `${metrics.errorCount} error(s)` : undefined} />
+                <StatCard
+                  icon={<LogOut size={18} />}
+                  label="Quick Exits"
+                  value={metrics.quickExitClicks}
+                  accent={metrics.quickExitClicks > 0}
+                />
+                {metrics.timeToFirstMessageMs !== null && (
+                  <StatCard
+                    icon={<Clock size={18} />}
+                    label="Time to First Msg"
+                    value={msToSecs(metrics.timeToFirstMessageMs)}
+                    sub="from session start"
+                  />
+                )}
               </div>
 
+              {/* Response times */}
               <div className="bg-white/60 border border-teal-100 rounded-xl p-4 mb-4">
                 <p className="text-xs font-bold text-teal-700 uppercase tracking-wide mb-3 flex items-center gap-1.5">
                   <Zap size={12} /> Response Times (this session)
@@ -257,12 +316,25 @@ export function AdminDashboard({ onClose }: AdminDashboardProps) {
                 )}
               </div>
 
+              {/* Categories */}
               {catEntries.length > 0 && (
-                <div className="bg-white/60 border border-teal-100 rounded-xl p-4">
+                <div className="bg-white/60 border border-teal-100 rounded-xl p-4 mb-4">
                   <p className="text-xs font-bold text-teal-700 uppercase tracking-wide mb-3">Categories Used (session)</p>
                   <div className="space-y-2">
                     {catEntries.map(([cat, count]) => (
                       <MiniBar key={cat} label={cat.replace(/_/g, ' ')} value={count} max={maxCatCount} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Resource clicks session */}
+              {resourceSessionEntries.length > 0 && (
+                <div className="bg-white/60 border border-teal-100 rounded-xl p-4">
+                  <p className="text-xs font-bold text-teal-700 uppercase tracking-wide mb-3">Resource Clicks (session)</p>
+                  <div className="space-y-2">
+                    {resourceSessionEntries.map(([name, count]) => (
+                      <MiniBar key={name} label={name} value={count} max={maxResourceSession} />
                     ))}
                   </div>
                 </div>
@@ -363,7 +435,7 @@ export function AdminDashboard({ onClose }: AdminDashboardProps) {
 
         {/* Footer note */}
         <div className="px-6 py-3 border-t border-teal-200 text-xs text-teal-600/50 text-center">
-          Debug dashboard — visible to all users in this build. Restrict to admin role before production.
+          Admin only — restrict access by role before production deployment.
         </div>
       </div>
     </div>

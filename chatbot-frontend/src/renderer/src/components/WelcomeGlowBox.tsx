@@ -26,7 +26,7 @@ export const WelcomeGlowBox = ({ sessionId, authToken }: WelcomeGlowBoxProps) =>
   const lastMsgRef = useRef<HTMLDivElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const { recordTextResponse, recordVoiceResponse } = useMetrics();
+  const { recordTextResponse, recordVoiceResponse, recordTimeToFirstMessage, metrics } = useMetrics();
 
   useEffect(() => {
     if (chatRef.current) {
@@ -42,6 +42,12 @@ export const WelcomeGlowBox = ({ sessionId, authToken }: WelcomeGlowBoxProps) =>
   const sendMessage = async (override?: string) => {
     const text = (override ?? input).trim();
     if (!text || isLoading) return;
+
+    if (metrics.userMessageCount === 0) {
+      const elapsed = Date.now() - metrics.sessionStartTime.getTime()
+      recordTimeToFirstMessage(elapsed)
+    }
+
     setInput("");
     setMessages((prev) => [...prev, { role: "user", text }]);
     // scroll down shortly after adding
@@ -50,6 +56,7 @@ export const WelcomeGlowBox = ({ sessionId, authToken }: WelcomeGlowBoxProps) =>
     }, 20);
     setIsLoading(true);
     const t0 = performance.now();
+
     try {
       const data = await sendChatMessage(text, undefined, sessionId, authToken);
       const elapsed = Math.round(performance.now() - t0);

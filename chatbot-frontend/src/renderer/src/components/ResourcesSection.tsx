@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ExternalLink, MapPin, Phone, Shield, Info } from 'lucide-react';
+import { useMetrics } from '../context/MetricsContext';
 
 interface Resource {
   name: string;
@@ -46,6 +47,7 @@ const resources: Resource[] = [
 
 export function ResourcesSection() {
   const [showHowItWorks, setShowHowItWorks] = useState(false)
+  const { recordResourceClick } = useMetrics()
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -131,7 +133,11 @@ export function ResourcesSection() {
               {resource.phone && (
                 <div className="flex items-center gap-2 text-gray-800">
                   <Phone className="w-4 h-4" />
-                  <a href={`tel:${resource.phone}`} className="hover:underline">
+                  <a
+                    href={`tel:${resource.phone}`}
+                    onClick={() => recordResourceClick(`${resource.name} - phone`)}
+                    className="hover:underline"
+                  >
                     {resource.phone}
                   </a>
                 </div>
@@ -143,6 +149,7 @@ export function ResourcesSection() {
                     href={`https://${resource.website}`}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => recordResourceClick(`${resource.name} - website`)}
                     className="hover:underline"
                   >
                     Visit Website
@@ -169,7 +176,11 @@ export function ResourcesSection() {
           <div className="flex items-center gap-2 text-gray-800">
             <Phone className="w-4 h-4" />
             <span className="font-medium">National Domestic Violence Hotline:</span>
-            <a href="tel:1-800-799-7233" className="hover:underline">
+            <a
+              href="tel:1-800-799-7233"
+              onClick={() => recordResourceClick('National Domestic Violence Hotline - phone')}
+              className="hover:underline"
+            >
               1-800-799-7233
             </a>
           </div>
