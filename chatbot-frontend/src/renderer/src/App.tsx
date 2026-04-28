@@ -11,7 +11,7 @@ import { BarChart2 } from 'lucide-react'
 
 export default function App(): JSX.Element {
   const { 
-    user, sessionId, isGuest, isLoading, 
+    user, sessionId, isGuest, isLoading, isAdmin, 
     signInWithEmail, signUpWithEmail, signOut, 
     continueAsGuest, getAuthHeader,
     guestTimeLeft, showWarning, formatTime
@@ -39,7 +39,11 @@ export default function App(): JSX.Element {
   }
 
   return (
-    <MetricsProvider>
+    <MetricsProvider
+      sessionId={sessionId}
+      userType={isGuest ? 'guest' : 'email'}
+      userEmail={user?.email}
+    >
       <div className="w-full bg-[#a1d7d6] font-sans text-teal-950 overflow-x-hidden">
         <QuickExitBar
           onSignOut={signOut}
@@ -64,15 +68,16 @@ export default function App(): JSX.Element {
         </section>
 
         {/* Debug dashboard toggle — bottom-right corner */}
-        <button
-          onClick={() => setShowDashboard(true)}
-          className="fixed bottom-4 right-4 z-40 flex items-center gap-2 px-3 py-2 bg-teal-800/90 text-white text-xs font-medium rounded-full shadow-lg hover:bg-teal-700 transition-colors backdrop-blur-sm"
-          title="Open admin dashboard"
-        >
-          <BarChart2 size={14} />
-          Dashboard
-        </button>
-
+        { isAdmin &&(
+          <button
+            onClick={() => setShowDashboard(true)}
+            className="fixed bottom-4 right-4 z-40 flex items-center gap-2 px-3 py-2 bg-teal-800/90 text-white text-xs font-medium rounded-full shadow-lg hover:bg-teal-700 transition-colors backdrop-blur-sm"
+            title="Open admin dashboard"
+          >
+            <BarChart2 size={14} />
+            Dashboard
+          </button>
+        )}
         {showDashboard && <AdminDashboard onClose={() => setShowDashboard(false)} />}
       </div>
     </MetricsProvider>

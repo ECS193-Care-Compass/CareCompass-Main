@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from 'react'
+import { supabase } from '../lib/supabase'
 
 export interface SessionMetrics {
   sessionStartTime: Date
@@ -114,7 +115,14 @@ function defaultMetrics(): SessionMetrics {
 
 const MetricsContext = createContext<MetricsContextType | null>(null)
 
-export function MetricsProvider({ children }: { children: ReactNode }) {
+interface MetricsProviderProps {
+  children: ReactNode
+  sessionId: string
+  userType: 'guest' | 'email'
+  userEmail?: string
+}
+
+export function MetricsProvider({ children, sessionId, userType, userEmail }: MetricsProviderProps) {
   const [metrics, setMetrics] = useState<SessionMetrics>(defaultMetrics)
   const [allTime, setAllTime] = useState<AllTimeMetrics>(() => {
     const loaded = loadAllTime()
@@ -127,18 +135,53 @@ export function MetricsProvider({ children }: { children: ReactNode }) {
     return updated
   })
 
-  const allTimeRef = useRef(allTime)
-  useEffect(() => { allTimeRef.current = allTime }, [allTime])
-
-  // Track metrics ref for abandonment detection on unmount
+  // Refs so cleanup useEffect always sees latest values without stale closures
   const metricsRef = useRef(metrics)
-  useEffect(() => { metricsRef.current = metrics }, [metrics])
+  const sessionIdRef = useRef(sessionId)
+  const userTypeRef = useRef(userType)
+  const userEmailRef = useRef(userEmail)
 
-  // Session abandonment + duration on unmount
+  useEffect(() => { metricsRef.current = metrics }, [metrics])
+  useEffect(() => { sessionIdRef.current = sessionId }, [sessionId])
+  useEffect(() => { userTypeRef.current = userType }, [userType])
+  useEffect(() => { userEmailRef.current = userEmail }, [userEmail])
+
+  // Flush session to Supabase + update local allTime on unmount
   useEffect(() => {
     return () => {
       const m = metricsRef.current
+      const endTime = new Date()
+      const durationMs = endTime.getTime() - m.sessionStartTime.getTime()
       const wasAbandoned = m.userMessageCount === 0
+      const avgResponseMs = m.responseTimes.length > 0
+        ? Math.round(m.responseTimes.reduce((a, b) => a + b, 0) / m.responseTimes.length)
+        : null
+
+      // Push to Supabase — fire and forget, won't block UI
+      supabase.from('session_analytics').insert({
+        session_id: sessionIdRef.current,
+        user_type: userTypeRef.current,
+        user_email: userEmailRef.current ?? null,
+        session_start: m.sessionStartTime.toISOString(),
+        session_end: endTime.toISOString(),
+        duration_ms: durationMs,
+        message_count: m.userMessageCount,
+        voice_message_count: m.voiceMessageCount,
+        crisis_detections: m.crisisDetections,
+        quick_exits: m.quickExitClicks,
+        time_to_first_message_ms: m.timeToFirstMessageMs,
+        abandoned: wasAbandoned,
+        categories_used: m.categoriesUsed,
+        resource_clicks: m.resourceClicks,
+        avg_response_ms: avgResponseMs,
+        error_count: m.errorCount,
+      }).then(({ error }) => {
+        if (error) {
+          console.warn('[Metrics] Failed to flush to Supabase:', error.message)
+        }
+      })
+
+      // Update local allTime storage
       setAllTime((prev) => {
         const next = {
           ...prev,

@@ -1,10 +1,31 @@
 import { useState, useEffect, useCallback } from 'react'
-import { X, RefreshCw, AlertTriangle, Clock, MessageSquare, Mic, Zap, Server, BarChart2, History, LogOut } from 'lucide-react'
+import { X, RefreshCw, AlertTriangle, Clock, MessageSquare, Mic, Zap, Server, BarChart2, History, LogOut, Download, Users } from 'lucide-react'
 import { useMetrics, type AllTimeMetrics } from '../context/MetricsContext'
 import { getDashboardStats, type DashboardResponse } from '../api'
+import { supabase } from '../lib/supabase'
 
 interface AdminDashboardProps {
   onClose: () => void
+}
+
+interface AnalyticsRow {
+  id: string
+  session_id: string
+  user_type: string
+  user_email: string | null
+  session_start: string
+  session_end: string
+  duration_ms: number
+  message_count: number
+  voice_message_count: number
+  crisis_detections: number
+  quick_exits: number
+  time_to_first_message_ms: number | null
+  abandoned: boolean
+  categories_used: Record<string, number>
+  resource_clicks: Record<string, number>
+  avg_response_ms: number | null
+  error_count: number
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -25,6 +46,52 @@ function formatDuration(startDate: Date) {
   const secs = totalSecs % 60
   return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`
 }
+
+function exportAnalyticsToCSV(rows: AnalyticsRow[]) {
+  const headers = [
+    'Date', 'Time', 'User Type', 'Email',
+    'Duration (s)', 'Messages', 'Voice Messages',
+    'Crisis Detections', 'Quick Exits',
+    'Time to First Msg (ms)', 'Avg Response (ms)',
+    'Errors', 'Abandoned',
+    'Categories Used', 'Resource Clicks',
+  ]
+
+  const csvRows = rows.map(r => {
+    const d = new Date(r.session_start)
+    return [
+      d.toLocaleDateString(),
+      d.toLocaleTimeString(),
+      r.user_type,
+      r.user_email ?? 'guest',
+      Math.round(r.duration_ms / 1000),
+      r.message_count,
+      r.voice_message_count,
+      r.crisis_detections,
+      r.quick_exits,
+      r.time_to_first_message_ms ?? 0,
+      r.avg_response_ms ?? 0,
+      r.error_count,
+      r.abandoned ? 'Yes' : 'No',
+      JSON.stringify(r.categories_used),
+      JSON.stringify(r.resource_clicks),
+    ]
+  })
+
+  const csv = [headers, ...csvRows]
+    .map(r => r.map(c => `"${c}"`).join(','))
+    .join('\n')
+
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `carecompass-analytics-${new Date().toISOString().split('T')[0]}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+// ── sub-components ────────────────────────────────────────────────────────────
 
 function StatCard({
   icon,
@@ -80,52 +147,28 @@ function AllSessionsPanel({ allTime, onReset }: { allTime: AllTimeMetrics; onRes
     <div>
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-bold text-teal-800 uppercase tracking-widest flex items-center gap-1.5">
-          <History size={14} /> All Sessions
+          <History size={14} /> All Sessions (local)
         </h3>
-        <button
-          onClick={onReset}
-          className="text-xs text-red-400 hover:text-red-600 hover:underline"
-        >
+        <button onClick={onReset} className="text-xs text-red-400 hover:text-red-600 hover:underline">
           Clear history
         </button>
       </div>
 
-      {/* Core stats */}
       <div className="grid grid-cols-2 gap-3 mb-4">
         <StatCard icon={<MessageSquare size={18} />} label="Total Sessions" value={allTime.totalSessions} sub={`first: ${firstDate.toLocaleDateString()}`} />
         <StatCard icon={<MessageSquare size={18} />} label="Total Messages" value={allTime.totalUserMessages + allTime.totalAiMessages} sub={`${allTime.totalUserMessages} sent · ${allTime.totalAiMessages} received`} />
         <StatCard icon={<Mic size={18} />} label="Voice Messages" value={allTime.totalVoiceMessages} />
         <StatCard icon={<AlertTriangle size={18} />} label="Crisis Detections" value={allTime.totalCrisisDetections} accent={allTime.totalCrisisDetections > 0} sub={allTime.totalErrors > 0 ? `${allTime.totalErrors} error(s)` : undefined} />
-      </div>
-
-      {/* New metrics */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <StatCard
-          icon={<LogOut size={18} />}
-          label="Quick Exits"
-          value={allTime.totalQuickExitClicks ?? 0}
-          accent={(allTime.totalQuickExitClicks ?? 0) > 0}
-        />
-        <StatCard
-          icon={<MessageSquare size={18} />}
-          label="Abandoned Sessions"
-          value={allTime.totalAbandonedSessions ?? 0}
-          sub="left without messaging"
-        />
+        <StatCard icon={<LogOut size={18} />} label="Quick Exits" value={allTime.totalQuickExitClicks ?? 0} accent={(allTime.totalQuickExitClicks ?? 0) > 0} />
+        <StatCard icon={<MessageSquare size={18} />} label="Abandoned Sessions" value={allTime.totalAbandonedSessions ?? 0} sub="left without messaging" />
         {allTime.avgTimeToFirstMessageMs > 0 && (
-          <StatCard
-            icon={<Clock size={18} />}
-            label="Avg Time to First Msg"
-            value={msToSecs(allTime.avgTimeToFirstMessageMs)}
-            sub={`${allTime.timeToFirstMessageCount} samples`}
-          />
+          <StatCard icon={<Clock size={18} />} label="Avg Time to First Msg" value={msToSecs(allTime.avgTimeToFirstMessageMs)} sub={`${allTime.timeToFirstMessageCount} samples`} />
         )}
       </div>
 
-      {/* Response times */}
       <div className="bg-white/60 border border-teal-100 rounded-xl p-4 mb-4">
         <p className="text-xs font-bold text-teal-700 uppercase tracking-wide mb-3 flex items-center gap-1.5">
-          <Zap size={12} /> Response Times (all sessions · {rt.count} samples)
+          <Zap size={12} /> Response Times ({rt.count} samples)
         </p>
         {rt.count === 0 ? (
           <p className="text-xs text-teal-600/50">No responses recorded yet.</p>
@@ -141,10 +184,9 @@ function AllSessionsPanel({ allTime, onReset }: { allTime: AllTimeMetrics; onRes
         )}
       </div>
 
-      {/* Categories */}
       {catEntries.length > 0 && (
         <div className="bg-white/60 border border-teal-100 rounded-xl p-4 mb-4">
-          <p className="text-xs font-bold text-teal-700 uppercase tracking-wide mb-3">Categories Used (all sessions)</p>
+          <p className="text-xs font-bold text-teal-700 uppercase tracking-wide mb-3">Categories Used</p>
           <div className="space-y-2">
             {catEntries.map(([cat, count]) => (
               <MiniBar key={cat} label={cat.replace(/_/g, ' ')} value={count} max={maxCat} />
@@ -153,7 +195,6 @@ function AllSessionsPanel({ allTime, onReset }: { allTime: AllTimeMetrics; onRes
         </div>
       )}
 
-      {/* Resource clicks all time */}
       {resourceEntries.length > 0 && (
         <div className="bg-white/60 border border-teal-100 rounded-xl p-4 mb-4">
           <p className="text-xs font-bold text-teal-700 uppercase tracking-wide mb-3">Resource Clicks (all time)</p>
@@ -170,9 +211,177 @@ function AllSessionsPanel({ allTime, onReset }: { allTime: AllTimeMetrics; onRes
   )
 }
 
+// ── Analytics panel (Supabase) ────────────────────────────────────────────────
+
+function AnalyticsPanel() {
+  const [rows, setRows] = useState<AnalyticsRow[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [filter, setFilter] = useState<'all' | 'guest' | 'email'>('all')
+
+  const fetchRows = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const { data, error } = await supabase
+        .from('session_analytics')
+        .select('*')
+        .order('session_start', { ascending: false })
+        .limit(200)
+
+      if (error) throw error
+      setRows(data ?? [])
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Could not fetch analytics. Admin access required.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchRows() }, [fetchRows])
+
+  const filtered = filter === 'all' ? rows : rows.filter(r => r.user_type === filter)
+
+  // Aggregate stats from Supabase data
+  const totalCrisis = filtered.filter(r => r.crisis_detections > 0).length
+  const totalQuickExits = filtered.reduce((sum, r) => sum + r.quick_exits, 0)
+  const totalAbandoned = filtered.filter(r => r.abandoned).length
+  const avgDurationMs = filtered.length > 0
+    ? Math.round(filtered.reduce((sum, r) => sum + r.duration_ms, 0) / filtered.length)
+    : 0
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-bold text-teal-800 uppercase tracking-widest flex items-center gap-1.5">
+          <Users size={14} /> Session Analytics (Supabase)
+        </h3>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={fetchRows}
+            disabled={loading}
+            className="flex items-center gap-1 text-xs text-teal-600 hover:text-teal-800"
+          >
+            <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+            Refresh
+          </button>
+          {filtered.length > 0 && (
+            <button
+              onClick={() => exportAnalyticsToCSV(filtered)}
+              className="flex items-center gap-1 text-xs text-teal-600 hover:text-teal-800"
+            >
+              <Download size={12} /> Export CSV
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Filter tabs */}
+      <div className="flex gap-1 mb-4">
+        {(['all', 'guest', 'email'] as const).map(f => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors ${
+              filter === f ? 'bg-teal-700 text-white' : 'bg-teal-100 text-teal-700 hover:bg-teal-200'
+            }`}
+          >
+            {f === 'all' ? 'All Users' : f === 'guest' ? 'Guests' : 'Signed In'}
+          </button>
+        ))}
+        <span className="ml-auto text-xs text-teal-500 self-center">{filtered.length} sessions</span>
+      </div>
+
+      {error && (
+        <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2">
+          <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+          {error}
+        </div>
+      )}
+
+      {loading && (
+        <p className="text-xs text-teal-500 animate-pulse text-center py-8">Loading from Supabase...</p>
+      )}
+
+      {!loading && filtered.length > 0 && (
+        <>
+          {/* Summary cards */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <StatCard icon={<Users size={18} />} label="Total Sessions" value={filtered.length} />
+            <StatCard icon={<Clock size={18} />} label="Avg Duration" value={msToSecs(avgDurationMs)} />
+            <StatCard icon={<AlertTriangle size={18} />} label="Crisis Sessions" value={totalCrisis} accent={totalCrisis > 0} sub={`${Math.round(totalCrisis / filtered.length * 100)}% of sessions`} />
+            <StatCard icon={<LogOut size={18} />} label="Quick Exits" value={totalQuickExits} accent={totalQuickExits > 0} />
+            <StatCard icon={<MessageSquare size={18} />} label="Abandoned" value={totalAbandoned} sub={`${Math.round(totalAbandoned / filtered.length * 100)}% of sessions`} />
+            <StatCard icon={<Mic size={18} />} label="Voice Sessions" value={filtered.filter(r => r.voice_message_count > 0).length} />
+          </div>
+
+          {/* Session table */}
+          <div className="overflow-x-auto rounded-xl border border-teal-100">
+            <table className="w-full text-xs text-teal-800">
+              <thead className="bg-teal-50 text-teal-600 uppercase tracking-wide">
+                <tr>
+                  <th className="px-3 py-2 text-left">Date & Time</th>
+                  <th className="px-3 py-2 text-left">User</th>
+                  <th className="px-3 py-2 text-right">Duration</th>
+                  <th className="px-3 py-2 text-right">Msgs</th>
+                  <th className="px-3 py-2 text-right">Voice</th>
+                  <th className="px-3 py-2 text-right">Crisis</th>
+                  <th className="px-3 py-2 text-right">Exits</th>
+                  <th className="px-3 py-2 text-right">Abandoned</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-teal-50">
+                {filtered.map(r => (
+                  <tr key={r.id} className="bg-white/60 hover:bg-white/80 transition-colors">
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      <span className="font-medium">{new Date(r.session_start).toLocaleDateString()}</span>
+                      <span className="text-teal-400 ml-1">{new Date(r.session_start).toLocaleTimeString()}</span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
+                        r.user_type === 'guest'
+                          ? 'bg-gray-100 text-gray-600'
+                          : 'bg-teal-100 text-teal-700'
+                      }`}>
+                        {r.user_type === 'guest' ? 'Guest' : (r.user_email ?? 'Email')}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono">{msToSecs(r.duration_ms)}</td>
+                    <td className="px-3 py-2 text-right">{r.message_count}</td>
+                    <td className="px-3 py-2 text-right">{r.voice_message_count || '—'}</td>
+                    <td className="px-3 py-2 text-right">
+                      {r.crisis_detections > 0
+                        ? <span className="text-red-500 font-semibold">{r.crisis_detections}</span>
+                        : '—'
+                      }
+                    </td>
+                    <td className="px-3 py-2 text-right">{r.quick_exits || '—'}</td>
+                    <td className="px-3 py-2 text-right">
+                      {r.abandoned
+                        ? <span className="text-amber-500 font-medium">Yes</span>
+                        : <span className="text-teal-500">No</span>
+                      }
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {!loading && filtered.length === 0 && !error && (
+        <p className="text-xs text-teal-500 text-center py-8">
+          No sessions recorded yet. Data appears here after users complete sessions.
+        </p>
+      )}
+    </div>
+  )
+}
+
 // ── main component ────────────────────────────────────────────────────────────
 
-type Tab = 'session' | 'alltime' | 'backend'
+type Tab = 'session' | 'alltime' | 'analytics' | 'backend'
 
 export function AdminDashboard({ onClose }: AdminDashboardProps) {
   const { metrics, allTime, resetMetrics, resetAllTime } = useMetrics()
@@ -182,7 +391,6 @@ export function AdminDashboard({ onClose }: AdminDashboardProps) {
   const [loading, setLoading] = useState(false)
   const [, setNow] = useState(new Date())
 
-  // Tick every second so duration stays live
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(id)
@@ -203,7 +411,6 @@ export function AdminDashboard({ onClose }: AdminDashboardProps) {
 
   useEffect(() => { fetchBackend() }, [fetchBackend])
 
-  // ── session-level derived values ──────────────────────────────────────────
   const sessionDuration = formatDuration(metrics.sessionStartTime)
   const avgResponseMs = avg(metrics.responseTimes)
   const minResponseMs = metrics.responseTimes.length ? Math.min(...metrics.responseTimes) : 0
@@ -214,14 +421,13 @@ export function AdminDashboard({ onClose }: AdminDashboardProps) {
   const resourceSessionEntries = Object.entries(metrics.resourceClicks).sort((a, b) => b[1] - a[1])
   const maxResourceSession = resourceSessionEntries.length ? resourceSessionEntries[0][1] : 1
 
-  // ── backend derived values ────────────────────────────────────────────────
   const sm = backendData?.server_metrics
   const bs = backendData?.bot_stats
   const backendCatEntries = sm ? Object.entries(sm.category_counts).sort((a, b) => b[1] - a[1]) : []
   const backendMaxCat = backendCatEntries.length ? backendCatEntries[0][1] : 1
 
   const TAB_STYLES = (active: boolean) =>
-    `px-4 py-2 text-xs font-semibold rounded-lg transition-colors ${
+    `px-3 py-2 text-xs font-semibold rounded-lg transition-colors ${
       active ? 'bg-teal-700 text-white' : 'text-teal-700 hover:bg-teal-100'
     }`
 
@@ -251,23 +457,17 @@ export function AdminDashboard({ onClose }: AdminDashboardProps) {
               </button>
             </div>
           </div>
-          {/* Tabs */}
-          <div className="flex gap-1 pb-3">
-            <button className={TAB_STYLES(tab === 'session')} onClick={() => setTab('session')}>
-              Current Session
-            </button>
-            <button className={TAB_STYLES(tab === 'alltime')} onClick={() => setTab('alltime')}>
-              All Sessions
-            </button>
-            <button className={TAB_STYLES(tab === 'backend')} onClick={() => setTab('backend')}>
-              Backend / Server
-            </button>
+          <div className="flex gap-1 pb-3 overflow-x-auto">
+            <button className={TAB_STYLES(tab === 'session')} onClick={() => setTab('session')}>Current Session</button>
+            <button className={TAB_STYLES(tab === 'alltime')} onClick={() => setTab('alltime')}>All Sessions</button>
+            <button className={TAB_STYLES(tab === 'analytics')} onClick={() => setTab('analytics')}>Analytics ↗</button>
+            <button className={TAB_STYLES(tab === 'backend')} onClick={() => setTab('backend')}>Backend</button>
           </div>
         </div>
 
         <div className="p-6">
 
-          {/* ── Tab: Current Session ──────────────────────────────────── */}
+          {/* ── Current Session ── */}
           {tab === 'session' && (
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -275,32 +475,20 @@ export function AdminDashboard({ onClose }: AdminDashboardProps) {
                 <button onClick={resetMetrics} className="text-xs text-teal-500 hover:text-teal-700 hover:underline">Reset</button>
               </div>
 
-              {/* Core stats */}
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <StatCard icon={<Clock size={18} />} label="Duration" value={sessionDuration} sub={`started ${metrics.sessionStartTime.toLocaleTimeString()}`} />
                 <StatCard icon={<MessageSquare size={18} />} label="Total Messages" value={totalSessionMsgs} sub={`${metrics.userMessageCount} sent · ${metrics.aiMessageCount} received`} />
                 <StatCard icon={<Mic size={18} />} label="Voice Messages" value={metrics.voiceMessageCount} />
                 <StatCard icon={<AlertTriangle size={18} />} label="Crisis Detections" value={metrics.crisisDetections} accent={metrics.crisisDetections > 0} sub={metrics.errorCount > 0 ? `${metrics.errorCount} error(s)` : undefined} />
-                <StatCard
-                  icon={<LogOut size={18} />}
-                  label="Quick Exits"
-                  value={metrics.quickExitClicks}
-                  accent={metrics.quickExitClicks > 0}
-                />
+                <StatCard icon={<LogOut size={18} />} label="Quick Exits" value={metrics.quickExitClicks} accent={metrics.quickExitClicks > 0} />
                 {metrics.timeToFirstMessageMs !== null && (
-                  <StatCard
-                    icon={<Clock size={18} />}
-                    label="Time to First Msg"
-                    value={msToSecs(metrics.timeToFirstMessageMs)}
-                    sub="from session start"
-                  />
+                  <StatCard icon={<Clock size={18} />} label="Time to First Msg" value={msToSecs(metrics.timeToFirstMessageMs)} sub="from session start" />
                 )}
               </div>
 
-              {/* Response times */}
               <div className="bg-white/60 border border-teal-100 rounded-xl p-4 mb-4">
                 <p className="text-xs font-bold text-teal-700 uppercase tracking-wide mb-3 flex items-center gap-1.5">
-                  <Zap size={12} /> Response Times (this session)
+                  <Zap size={12} /> Response Times
                 </p>
                 {metrics.responseTimes.length === 0 ? (
                   <p className="text-xs text-teal-600/50">No responses recorded yet.</p>
@@ -316,10 +504,9 @@ export function AdminDashboard({ onClose }: AdminDashboardProps) {
                 )}
               </div>
 
-              {/* Categories */}
               {catEntries.length > 0 && (
                 <div className="bg-white/60 border border-teal-100 rounded-xl p-4 mb-4">
-                  <p className="text-xs font-bold text-teal-700 uppercase tracking-wide mb-3">Categories Used (session)</p>
+                  <p className="text-xs font-bold text-teal-700 uppercase tracking-wide mb-3">Categories Used</p>
                   <div className="space-y-2">
                     {catEntries.map(([cat, count]) => (
                       <MiniBar key={cat} label={cat.replace(/_/g, ' ')} value={count} max={maxCatCount} />
@@ -328,10 +515,9 @@ export function AdminDashboard({ onClose }: AdminDashboardProps) {
                 </div>
               )}
 
-              {/* Resource clicks session */}
               {resourceSessionEntries.length > 0 && (
                 <div className="bg-white/60 border border-teal-100 rounded-xl p-4">
-                  <p className="text-xs font-bold text-teal-700 uppercase tracking-wide mb-3">Resource Clicks (session)</p>
+                  <p className="text-xs font-bold text-teal-700 uppercase tracking-wide mb-3">Resource Clicks</p>
                   <div className="space-y-2">
                     {resourceSessionEntries.map(([name, count]) => (
                       <MiniBar key={name} label={name} value={count} max={maxResourceSession} />
@@ -342,12 +528,15 @@ export function AdminDashboard({ onClose }: AdminDashboardProps) {
             </div>
           )}
 
-          {/* ── Tab: All Sessions ─────────────────────────────────────── */}
+          {/* ── All Sessions (local) ── */}
           {tab === 'alltime' && (
             <AllSessionsPanel allTime={allTime} onReset={resetAllTime} />
           )}
 
-          {/* ── Tab: Backend / Server ─────────────────────────────────── */}
+          {/* ── Analytics (Supabase) ── */}
+          {tab === 'analytics' && <AnalyticsPanel />}
+
+          {/* ── Backend ── */}
           {tab === 'backend' && (
             <div>
               <h3 className="text-sm font-bold text-teal-800 uppercase tracking-widest mb-3">Backend / Server</h3>
@@ -393,7 +582,7 @@ export function AdminDashboard({ onClose }: AdminDashboardProps) {
 
                   {backendCatEntries.length > 0 && (
                     <div className="bg-white/60 border border-teal-100 rounded-xl p-4 mb-4">
-                      <p className="text-xs font-bold text-teal-700 uppercase tracking-wide mb-3">Category Distribution (server lifetime)</p>
+                      <p className="text-xs font-bold text-teal-700 uppercase tracking-wide mb-3">Category Distribution</p>
                       <div className="space-y-2">
                         {backendCatEntries.map(([cat, count]) => (
                           <MiniBar key={cat} label={cat.replace(/_/g, ' ')} value={count} max={backendMaxCat} />
@@ -433,9 +622,8 @@ export function AdminDashboard({ onClose }: AdminDashboardProps) {
           )}
         </div>
 
-        {/* Footer note */}
         <div className="px-6 py-3 border-t border-teal-200 text-xs text-teal-600/50 text-center">
-          Admin only — restrict access by role before production deployment.
+          Admin only — access restricted by Supabase role.
         </div>
       </div>
     </div>

@@ -23,7 +23,7 @@ if not os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
         directory.mkdir(parents=True, exist_ok=True)
 
 # Vertex AI Configuration
-GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "")
+GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "certain-perigee-489402-e9")
 GCP_LOCATION = os.getenv("GCP_LOCATION", "us-central1")
 
 # Embedding Configuration

@@ -8,6 +8,7 @@ interface AuthState {
   sessionId: string
   isGuest: boolean
   isLoading: boolean
+  isAdmin: boolean
 }
 
 function generateGuestId(): string {
@@ -15,9 +16,6 @@ function generateGuestId(): string {
 }
 
 const GUEST_SESSION_KEY = 'care-compass-guest-id'
-// Testing with 30 seconds with warning at 10 seconds
-//const GUEST_SESSION_DURATION = 30 * 1000 // 30 seconds
-//const WARNING_THRESHOLD = 10 * 1000      // 10 seconds
 
 // Timer of 30 minutes for guest trials
 const GUEST_SESSION_DURATION = 30 * 60 * 1000 // 30 minutes
@@ -31,6 +29,20 @@ function getOrCreateGuestId(): string {
   return id
 }
 
+async function fetchIsAdmin(userId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single()
+    if (error) return false
+    return data?.role === 'admin'
+  } catch {
+    return false
+  }
+}
+
 export function useAuth() {
   const [state, setState] = useState<AuthState>({
     user: null,
@@ -38,6 +50,7 @@ export function useAuth() {
     sessionId: getOrCreateGuestId(),
     isGuest: false,
     isLoading: true,
+    isAdmin: false,
   })
 
   const [guestTimeLeft, setGuestTimeLeft] = useState<number | null>(null)
@@ -46,33 +59,37 @@ export function useAuth() {
   const startTimeRef = useRef<number | null>(null)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
+        const isAdmin = await fetchIsAdmin(session.user.id)
         setState({
           user: session.user,
           session,
           sessionId: session.user.id,
           isGuest: false,
           isLoading: false,
+          isAdmin,
         })
       } else {
         setState(prev => ({ ...prev, isLoading: false }))
       }
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'INITIAL_SESSION') return undefined
       if (session?.user) {
         // Clear guest timer if user signs in
         if (timerRef.current) clearInterval(timerRef.current)
         setGuestTimeLeft(null)
         setShowWarning(false)
+        const isAdmin = await fetchIsAdmin(session.user.id)
         setState({
           user: session.user,
           session,
           sessionId: session.user.id,
           isGuest: false,
           isLoading: false,
+          isAdmin,
         })
       } else {
         setState({
@@ -81,6 +98,7 @@ export function useAuth() {
           sessionId: getOrCreateGuestId(),
           isGuest: false,
           isLoading: false,
+          isAdmin: false,
         })
       }
     })
@@ -91,7 +109,6 @@ export function useAuth() {
   // Guest session countdown
   useEffect(() => {
     if (!state.isGuest) {
-      // Clean up timer if no longer guest
       if (timerRef.current) clearInterval(timerRef.current)
       setGuestTimeLeft(null)
       setShowWarning(false)
@@ -108,7 +125,6 @@ export function useAuth() {
       if (remaining <= 0) {
         clearInterval(timerRef.current!)
         setGuestTimeLeft(0)
-        // Clear guest session and return to auth screen
         sessionStorage.removeItem(GUEST_SESSION_KEY)
         setState({
           user: null,
@@ -116,6 +132,7 @@ export function useAuth() {
           sessionId: getOrCreateGuestId(),
           isGuest: false,
           isLoading: false,
+          isAdmin: false,
         })
         return
       }
@@ -162,6 +179,7 @@ export function useAuth() {
       sessionId: getOrCreateGuestId(),
       isGuest: true,
       isLoading: false,
+      isAdmin: false,
     })
   }
 
