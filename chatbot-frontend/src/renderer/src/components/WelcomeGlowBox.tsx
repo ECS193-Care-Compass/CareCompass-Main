@@ -435,7 +435,7 @@ const endVoiceCall = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-50 bg-[#002b2b] flex flex-col items-center justify-between py-12 rounded-3xl"
+            className="hc-voice-overlay absolute inset-0 z-50 bg-[#002b2b] flex flex-col items-center justify-between py-12 rounded-3xl"
           >
             <div className="text-teal-100/40 text-xs uppercase tracking-[0.2em] font-bold">Voice Session Active</div>
             
@@ -540,7 +540,7 @@ const endVoiceCall = () => {
                     transition={{ duration: 0.6 }}
                     className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
                   >
-                    <div className={`max-w-[80%] p-3 rounded-lg text-sm ${m.role === "user" ? "bg-teal-700 text-white rounded-tr-none" : "bg-white/40 text-cyan-950 shadow-sm rounded-tl-none"}`}>
+                    <div className={`max-w-[80%] p-3 rounded-lg text-sm ${m.role === "user" ? "hc-user-bubble bg-teal-700 text-white rounded-tr-none" : "hc-assistant-bubble bg-white/40 text-cyan-950 shadow-sm rounded-tl-none"}`}>
                       <ReactMarkdown>{m.content}</ReactMarkdown>
                     </div>
                   </motion.div>

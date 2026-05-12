@@ -122,7 +122,7 @@ export function ResourcesSection() {
         {resources.map((resource) => (
           <div
             key={resource.name}
-            className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
+            className="hc-card bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
           >
             <h3 className="text-xl font-semibold text-gray-900 mb-2">{resource.name}</h3>
             <p className="text-gray-700 mb-4">{resource.description}</p>
@@ -161,7 +161,7 @@ export function ResourcesSection() {
       </div>
 
       {/* National Resources */}
-      <div className="mt-12 p-6 bg-gray-50 rounded-lg border border-gray-200">
+      <div className="hc-card mt-12 p-6 bg-gray-50 rounded-lg border border-gray-200">
         <h3 className="text-xl font-semibold text-gray-900 mb-3">
           National Resources
         </h3>
