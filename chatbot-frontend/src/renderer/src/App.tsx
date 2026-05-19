@@ -3,12 +3,13 @@ import { WelcomeGlowBox } from './components/WelcomeGlowBox'
 import { QuickExitBar } from './components/QuickExitBar'
 import { ResourcesSection } from './components/ResourcesSection'
 import { AuthScreen } from './components/AuthScreen'
+import { HighContrastToggle } from './components/HighContrastToggle'
 import { useAuth } from './hooks/useAuth'
 
 export default function App(): JSX.Element {
-  const { 
-    user, sessionId, isGuest, isLoading, 
-    signInWithEmail, signUpWithEmail, signOut, 
+  const {
+    user, sessionId, isGuest, isLoading,
+    signInWithEmail, signUpWithEmail, signOut,
     continueAsGuest, getAuthHeader,
     guestTimeLeft, showWarning, formatTime
   } = useAuth()
@@ -24,6 +25,10 @@ export default function App(): JSX.Element {
   if (!user && !isGuest) {
     return (
       <div className="w-full min-h-screen bg-[#a1d7d6] font-sans text-teal-950">
+        {/* Floating contrast toggle for the auth screen */}
+        <div className="fixed top-4 right-4 z-50">
+          <HighContrastToggle variant="compact" />
+        </div>
         <AuthScreen
           onSignIn={signInWithEmail}
           onSignUp={signUpWithEmail}

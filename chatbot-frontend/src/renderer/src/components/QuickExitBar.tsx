@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { LogOut, UserX, Clock } from 'lucide-react';
+import { HighContrastToggle } from './HighContrastToggle';
 
 interface QuickExitBarProps {
   onSignOut?: () => void
@@ -34,7 +35,7 @@ export function QuickExitBar({ onSignOut, showSignOut, guestTimeLeft, showWarnin
   const hasTimer = guestTimeLeft !== null && guestTimeLeft !== undefined && formatTime
 
   return (
-    <div className={`fixed top-0 left-0 w-full z-50 border-b px-4 lg:px-8 py-3 transition-colors duration-500 ${isWarning ? 'bg-rose-300 border-rose-200' : 'bg-teal-700 border-teal-600'}`}>
+    <div className={`quick-exit-bar fixed top-0 left-0 w-full z-50 border-b px-4 lg:px-8 py-3 transition-colors duration-500 ${isWarning ? 'bg-rose-300 border-rose-200' : 'bg-teal-700 border-teal-600'}`}>
       <div className="flex items-center gap-3 lg:gap-4 lg:justify-between">
 
         {/* Left text */}
@@ -65,6 +66,7 @@ export function QuickExitBar({ onSignOut, showSignOut, guestTimeLeft, showWarnin
 
         {/* Right buttons */}
         <div className="flex items-center gap-2 ml-auto lg:ml-0">
+          <HighContrastToggle variant="compact" />
           {showSignOut && onSignOut && (
             <button
               onClick={onSignOut}

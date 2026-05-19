@@ -2,10 +2,10 @@
 
 @layer base {
   :root {
-    --primary: 181 100% 19%; 
+    --primary: 181 100% 19%;
     --primary-foreground: 0 0% 100%;
-    --radius: 1.5rem; 
-    --background: 182 44% 74%; 
+    --radius: 1.5rem;
+    --background: 182 44% 74%;
     --border: 181 100% 10%;
   }
 
@@ -15,8 +15,265 @@
     margin: 0;
     overflow-y: auto !important;
   }
+
+  /* Smooth transitions when toggling contrast mode */
+  html {
+    transition: background-color 200ms ease, color 200ms ease;
+  }
 }
 
 #root {
   @apply flex flex-col items-center w-full min-h-screen;
+}
+
+/* =====================================================================
+   HIGH CONTRAST MODE
+   Activated when <html data-contrast="high"> (or html.high-contrast)
+   Uses pure black/white plus a single accessible accent (yellow) so that
+   all backgrounds, text, borders, buttons, inputs, and chat bubbles meet
+   WCAG AAA contrast ratios.
+   ===================================================================== */
+
+html[data-contrast="high"] body,
+html.high-contrast body {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+/* Root container */
+html[data-contrast="high"] #root,
+html.high-contrast #root {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+/* All top-level page wrappers / sections */
+html[data-contrast="high"] section,
+html.high-contrast section {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border-color: #ffffff !important;
+}
+
+/* Generic background overrides — any teal/white/glassmorphism panel */
+html[data-contrast="high"] [class*="bg-teal-"],
+html[data-contrast="high"] [class*="bg-cyan-"],
+html.high-contrast [class*="bg-teal-"],
+html.high-contrast [class*="bg-cyan-"] {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+html[data-contrast="high"] [class*="bg-white"],
+html.high-contrast [class*="bg-white"] {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+html[data-contrast="high"] [class*="bg-gray-"],
+html[data-contrast="high"] [class*="bg-slate-"],
+html.high-contrast [class*="bg-gray-"],
+html.high-contrast [class*="bg-slate-"] {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+html[data-contrast="high"] [class*="bg-rose-"],
+html.high-contrast [class*="bg-rose-"] {
+  background-color: #ffff00 !important;
+  color: #000000 !important;
+}
+
+/* Text colors — promote everything to pure white */
+html[data-contrast="high"] [class*="text-teal-"],
+html[data-contrast="high"] [class*="text-cyan-"],
+html[data-contrast="high"] [class*="text-gray-"],
+html[data-contrast="high"] [class*="text-slate-"],
+html[data-contrast="high"] [class*="text-rose-"],
+html.high-contrast [class*="text-teal-"],
+html.high-contrast [class*="text-cyan-"],
+html.high-contrast [class*="text-gray-"],
+html.high-contrast [class*="text-slate-"],
+html.high-contrast [class*="text-rose-"] {
+  color: #ffffff !important;
+}
+
+/* Borders */
+html[data-contrast="high"] [class*="border"],
+html.high-contrast [class*="border"] {
+  border-color: #ffffff !important;
+}
+
+html[data-contrast="high"] *,
+html.high-contrast * {
+  /* Stronger default border weight for elements with any border class */
+  border-style: solid;
+}
+
+/* Buttons — make every button bright yellow on black with thick border */
+html[data-contrast="high"] button,
+html.high-contrast button {
+  background-color: #ffff00 !important;
+  color: #000000 !important;
+  border: 2px solid #ffffff !important;
+  font-weight: 700 !important;
+}
+
+html[data-contrast="high"] button:hover,
+html.high-contrast button:hover {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border-color: #ffff00 !important;
+}
+
+html[data-contrast="high"] button:disabled,
+html.high-contrast button:disabled {
+  background-color: #555555 !important;
+  color: #ffffff !important;
+  border-color: #888888 !important;
+  opacity: 1 !important;
+}
+
+html[data-contrast="high"] button:focus-visible,
+html.high-contrast button:focus-visible {
+  outline: 3px solid #ffff00 !important;
+  outline-offset: 3px !important;
+}
+
+/* Inputs and textareas */
+html[data-contrast="high"] input,
+html[data-contrast="high"] textarea,
+html.high-contrast input,
+html.high-contrast textarea {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border: 2px solid #ffffff !important;
+  caret-color: #ffff00 !important;
+}
+
+html[data-contrast="high"] input::placeholder,
+html[data-contrast="high"] textarea::placeholder,
+html.high-contrast input::placeholder,
+html.high-contrast textarea::placeholder {
+  color: #cccccc !important;
+  opacity: 1 !important;
+}
+
+html[data-contrast="high"] input:focus,
+html[data-contrast="high"] textarea:focus,
+html.high-contrast input:focus,
+html.high-contrast textarea:focus {
+  outline: 3px solid #ffff00 !important;
+  outline-offset: 2px !important;
+  border-color: #ffff00 !important;
+}
+
+/* Links */
+html[data-contrast="high"] a,
+html.high-contrast a {
+  color: #ffff00 !important;
+  text-decoration: underline !important;
+  font-weight: 700 !important;
+}
+
+html[data-contrast="high"] a:hover,
+html.high-contrast a:hover {
+  color: #ffffff !important;
+  background-color: #ffff00 !important;
+}
+
+/* Top quick-exit bar — keep readable when in warning state */
+html[data-contrast="high"] .quick-exit-bar,
+html.high-contrast .quick-exit-bar {
+  background-color: #000000 !important;
+  border-bottom: 3px solid #ffff00 !important;
+}
+
+/* User chat bubble */
+html[data-contrast="high"] .hc-user-bubble,
+html.high-contrast .hc-user-bubble {
+  background-color: #ffff00 !important;
+  color: #000000 !important;
+  border: 2px solid #ffffff !important;
+}
+
+/* Assistant chat bubble */
+html[data-contrast="high"] .hc-assistant-bubble,
+html.high-contrast .hc-assistant-bubble {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border: 2px solid #ffff00 !important;
+}
+
+/* Voice session overlay panel */
+html[data-contrast="high"] .hc-voice-overlay,
+html.high-contrast .hc-voice-overlay {
+  background-color: #000000 !important;
+  border: 3px solid #ffff00 !important;
+}
+
+/* Mic button / icon containers */
+html[data-contrast="high"] [aria-label="Use Voice"],
+html.high-contrast [aria-label="Use Voice"] {
+  background-color: #ffff00 !important;
+  color: #000000 !important;
+  border: 3px solid #ffffff !important;
+}
+
+/* Cards / resource panels */
+html[data-contrast="high"] .hc-card,
+html.high-contrast .hc-card {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border: 2px solid #ffff00 !important;
+}
+
+/* SVG icons inside buttons stay legible */
+html[data-contrast="high"] button svg,
+html.high-contrast button svg {
+  color: inherit !important;
+  stroke: currentColor !important;
+}
+
+/* Disable subtle backdrop-blur / opacity tricks that hurt contrast */
+html[data-contrast="high"] [class*="backdrop-blur"],
+html.high-contrast [class*="backdrop-blur"] {
+  backdrop-filter: none !important;
+}
+
+html[data-contrast="high"] [class*="opacity-"],
+html.high-contrast [class*="opacity-"] {
+  opacity: 1 !important;
+}
+
+/* Strong focus ring for keyboard users */
+html[data-contrast="high"] *:focus-visible,
+html.high-contrast *:focus-visible {
+  outline: 3px solid #ffff00 !important;
+  outline-offset: 2px !important;
+}
+
+/* Headings — keep them clearly readable */
+html[data-contrast="high"] h1,
+html[data-contrast="high"] h2,
+html[data-contrast="high"] h3,
+html[data-contrast="high"] h4,
+html.high-contrast h1,
+html.high-contrast h2,
+html.high-contrast h3,
+html.high-contrast h4 {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* Scrollbars — make them more visible */
+html[data-contrast="high"] *::-webkit-scrollbar-thumb,
+html.high-contrast *::-webkit-scrollbar-thumb {
+  background-color: #ffff00 !important;
+  border: 2px solid #ffffff !important;
+}
+
+html[data-contrast="high"] *::-webkit-scrollbar-track,
+html.high-contrast *::-webkit-scrollbar-track {
+  background-color: #000000 !important;
 }

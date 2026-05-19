@@ -39,7 +39,7 @@ export function AuthScreen({ onSignIn, onSignUp, onGuest }: AuthScreenProps) {
   if (mode === 'welcome') {
     return (
       <div className="flex items-center justify-center min-h-screen w-full">
-        <div className="flex flex-col items-center w-full max-w-md mx-5 px-8 py-10 border border-teal-700/20 rounded-3xl bg-white/5 hover:bg-white/10 hover:border-teal-700/40 transition-all">
+        <div className="hc-card flex flex-col items-center w-full max-w-md mx-5 px-8 py-10 border border-teal-700/20 rounded-3xl bg-white/5 hover:bg-white/10 hover:border-teal-700/40 transition-all">
           <h1 className="text-2xl font-medium text-teal-900/90 text-center mb-2">
             Welcome to CARE Bot
           </h1>
@@ -90,7 +90,7 @@ export function AuthScreen({ onSignIn, onSignUp, onGuest }: AuthScreenProps) {
   if (signUpSuccess) {
     return (
       <div className="flex items-center justify-center min-h-screen w-full">
-        <div className="flex flex-col items-center w-full max-w-md mx-5 px-8 py-10 border border-teal-700/20 rounded-3xl bg-white/5">
+        <div className="hc-card flex flex-col items-center w-full max-w-md mx-5 px-8 py-10 border border-teal-700/20 rounded-3xl bg-white/5">
           <h2 className="text-xl font-medium text-teal-900/90 text-center mb-3">
             Check your email
           </h2>
@@ -113,7 +113,7 @@ export function AuthScreen({ onSignIn, onSignUp, onGuest }: AuthScreenProps) {
   // Sign in / Sign up form
   return (
     <div className="flex items-center justify-center min-h-screen w-full">
-      <div className="flex flex-col w-full max-w-md mx-5 px-8 py-10 border border-teal-700/20 rounded-3xl bg-white/5 hover:bg-white/10 hover:border-teal-700/40 transition-all">
+      <div className="hc-card flex flex-col w-full max-w-md mx-5 px-8 py-10 border border-teal-700/20 rounded-3xl bg-white/5 hover:bg-white/10 hover:border-teal-700/40 transition-all">
         <h2 className="text-xl font-medium text-teal-900/90 text-center mb-6">
           {mode === 'signin' ? 'Sign in' : 'Create account'}
         </h2>
